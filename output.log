@@ -1,0 +1,70 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------------< com.example:AedusApp >------------------------
+[INFO] Building AedusApp 1.0-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[WARNING] 6 problems were encountered while building the effective model for org.openjfx:javafx-controls:jar:19.0.2 during dependency collection step for project (use -X to see details)
+[WARNING] 6 problems were encountered while building the effective model for org.openjfx:javafx-controls:jar:20 during dependency collection step for project (use -X to see details)
+[INFO] 
+[INFO] --- clean:3.2.0:clean (default-clean) @ AedusApp ---
+[INFO] Deleting C:\Users\Mario\IdeaProjects\AedusApp\target
+[INFO] 
+[INFO] >>> javafx:0.0.8:run (default-cli) > process-classes @ AedusApp >>>
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ AedusApp ---
+[INFO] Copying 3 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ AedusApp ---
+[INFO] Changes detected - recompiling the module! :source
+[INFO] Compiling 6 source files with javac [debug target 19 module-path] to target\classes
+[WARNING] system modules path not set in conjunction with -source 19
+[INFO] 
+[INFO] <<< javafx:0.0.8:run (default-cli) < process-classes @ AedusApp <<<
+[INFO] 
+[INFO] 
+[INFO] --- javafx:0.0.8:run (default-cli) @ AedusApp ---
+Exception in Application start method
+java.lang.RuntimeException: Exception in Application start method
+	at javafx.graphics@19.0.2/com.sun.javafx.application.LauncherImpl.launchApplication1(LauncherImpl.java:901)
+	at javafx.graphics@19.0.2/com.sun.javafx.application.LauncherImpl.lambda$launchApplication$2(LauncherImpl.java:196)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+Caused by: javafx.fxml.LoadException: 
+/C:/Users/Mario/IdeaProjects/AedusApp/target/classes/com/example/aedusapp/main.fxml:29
+
+	at javafx.fxml@19.0.2/javafx.fxml.FXMLLoader.constructLoadException(FXMLLoader.java:2714)
+	at javafx.fxml@19.0.2/javafx.fxml.FXMLLoader.loadImpl(FXMLLoader.java:2692)
+	at javafx.fxml@19.0.2/javafx.fxml.FXMLLoader.loadImpl(FXMLLoader.java:2555)
+	at javafx.fxml@19.0.2/javafx.fxml.FXMLLoader.load(FXMLLoader.java:2523)
+	at com.example.aedusapp@1.0-SNAPSHOT/com.example.aedusapp.HelloApplication.start(HelloApplication.java:15)
+	at javafx.graphics@19.0.2/com.sun.javafx.application.LauncherImpl.lambda$launchApplication1$9(LauncherImpl.java:847)
+	at javafx.graphics@19.0.2/com.sun.javafx.application.PlatformImpl.lambda$runAndWait$12(PlatformImpl.java:484)
+	at javafx.graphics@19.0.2/com.sun.javafx.application.PlatformImpl.lambda$runLater$10(PlatformImpl.java:457)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:400)
+	at javafx.graphics@19.0.2/com.sun.javafx.application.PlatformImpl.lambda$runLater$11(PlatformImpl.java:456)
+	at javafx.graphics@19.0.2/com.sun.glass.ui.InvokeLaterDispatcher$Future.run(InvokeLaterDispatcher.java:96)
+	at javafx.graphics@19.0.2/com.sun.glass.ui.win.WinApplication._runLoop(Native Method)
+	at javafx.graphics@19.0.2/com.sun.glass.ui.win.WinApplication.lambda$runLoop$3(WinApplication.java:184)
+	... 1 more
+Caused by: java.lang.NumberFormatException: For input string: "infinity"
+	at java.base/jdk.internal.math.FloatingDecimal.readJavaFormatString(FloatingDecimal.java:2054)
+	at java.base/jdk.internal.math.FloatingDecimal.parseDouble(FloatingDecimal.java:110)
+	at java.base/java.lang.Double.parseDouble(Double.java:792)
+	at java.base/java.lang.Double.valueOf(Double.java:755)
+	at javafx.fxml@19.0.2/com.sun.javafx.fxml.BeanAdapter.coerce(BeanAdapter.java:451)
+	at javafx.fxml@19.0.2/com.sun.javafx.fxml.BeanAdapter.put(BeanAdapter.java:259)
+	at javafx.fxml@19.0.2/com.sun.javafx.fxml.BeanAdapter.put(BeanAdapter.java:54)
+	at javafx.fxml@19.0.2/javafx.fxml.FXMLLoader$Element.applyProperty(FXMLLoader.java:523)
+	at javafx.fxml@19.0.2/javafx.fxml.FXMLLoader$Element.processValue(FXMLLoader.java:373)
+	at javafx.fxml@19.0.2/javafx.fxml.FXMLLoader$Element.processPropertyAttribute(FXMLLoader.java:335)
+	at javafx.fxml@19.0.2/javafx.fxml.FXMLLoader$Element.processInstancePropertyAttributes(FXMLLoader.java:245)
+	at javafx.fxml@19.0.2/javafx.fxml.FXMLLoader$ValueElement.processEndElement(FXMLLoader.java:778)
+	at javafx.fxml@19.0.2/javafx.fxml.FXMLLoader.processEndElement(FXMLLoader.java:2961)
+	at javafx.fxml@19.0.2/javafx.fxml.FXMLLoader.loadImpl(FXMLLoader.java:2646)
+	... 12 more
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  3.255 s
+[INFO] Finished at: 2026-01-20T11:49:23+01:00
+[INFO] ------------------------------------------------------------------------
