@@ -2,6 +2,7 @@ package com.example.aedusapp.controllers;
 
 import com.example.aedusapp.database.UsuarioDAO;
 import com.example.aedusapp.models.Usuario;
+import com.example.aedusapp.services.LogService;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -47,6 +48,12 @@ public class AdminUsersController {
     // Listas que conectan los datos con las tablas
     private ObservableList<Usuario> activeUsersList = FXCollections.observableArrayList();
     private ObservableList<Usuario> pendingUsersList = FXCollections.observableArrayList();
+    
+    private Usuario usuarioActual;
+
+    public void setUsuarioActual(Usuario usuario) {
+        this.usuarioActual = usuario;
+    }
 
     // Método que se ejecuta automáticamente al abrir esta pantalla (como un
     // constructor)
@@ -116,6 +123,9 @@ public class AdminUsersController {
             if (controller.isSaveClicked()) {
                 Usuario updatedUser = controller.getUsuario();
                 if (usuarioDAO.actualizarUsuario(updatedUser)) {
+                    if (usuarioActual != null) {
+                        LogService.logEditarUsuario(usuarioActual, updatedUser.getNombre());
+                    }
                     loadData(); // Refrescar la tabla
                     showAlert(Alert.AlertType.INFORMATION, "Éxito", "Usuario actualizado correctamente.");
                 } else {
@@ -147,6 +157,9 @@ public class AdminUsersController {
         if (result.isPresent() && result.get() == ButtonType.OK) {
             // Si dice que SÍ, borrar de la base de datos
             if (usuarioDAO.eliminarUsuario(selectedUser.getId())) {
+                if (usuarioActual != null) {
+                    LogService.logEliminarUsuario(usuarioActual, selectedUser.getNombre());
+                }
                 loadData(); // Refrescar
             } else {
                 showAlert(Alert.AlertType.ERROR, "Error", "Error al eliminar usuario.");
@@ -163,12 +176,23 @@ public class AdminUsersController {
             return;
         }
 
+        // Validar roles
+        java.util.List<Integer> roles = selectedUser.getRoles();
+        if (roles == null || roles.isEmpty() || (roles.size() == 1 && roles.get(0) == 0)) {
+            // Asignar rol de Profesor (2) por defecto si no tiene rol válido
+            roles = new java.util.ArrayList<>();
+            roles.add(2);
+        }
+
         // Cambiar estado a "ACTIVE"
         Usuario approvedUser = new Usuario(selectedUser.getId(), selectedUser.getNombre(), selectedUser.getEmail(),
-                selectedUser.getPassword(), "ACTIVE", selectedUser.getRoleId());
+                selectedUser.getPassword(), "ACTIVE", roles);
 
         if (usuarioDAO.actualizarUsuario(approvedUser)) {
-            showAlert(Alert.AlertType.INFORMATION, "Aprobado", "El usuario ha sido activado.");
+            if (usuarioActual != null) {
+                LogService.logCrearUsuario(usuarioActual, approvedUser.getNombre());
+            }
+            showAlert(Alert.AlertType.INFORMATION, "Aprobado", "El usuario ha sido activado con rol de Profesor.");
             loadData();
         } else {
             showAlert(Alert.AlertType.ERROR, "Error", "Error al aprobar usuario.");
@@ -186,6 +210,9 @@ public class AdminUsersController {
 
         // Eliminar al usuario de la base de datos
         if (usuarioDAO.eliminarUsuario(selectedUser.getId())) {
+            if (usuarioActual != null) {
+                LogService.logEliminarUsuario(usuarioActual, selectedUser.getNombre() + " (Solicitud Rechazada)");
+            }
             showAlert(Alert.AlertType.INFORMATION, "Rechazado", "La solicitud ha sido rechazada y eliminada.");
             loadData();
         } else {

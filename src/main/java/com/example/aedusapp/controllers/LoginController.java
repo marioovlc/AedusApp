@@ -3,6 +3,7 @@ package com.example.aedusapp.controllers;
 import com.example.aedusapp.MainApp;
 import com.example.aedusapp.database.UsuarioDAO;
 import com.example.aedusapp.models.Usuario;
+import com.example.aedusapp.services.LogService;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -51,6 +52,9 @@ public class LoginController {
 
         // Si el usuario existe (no es nulo)
         if (usuario != null) {
+            // Registrar evento de login en el sistema de logs
+            LogService.logLogin(usuario, "localhost");
+
             lblError.setText(""); // Limpiar errores anteriores
             abrirDashboard(); // Entrar a la aplicación principal
         } else {

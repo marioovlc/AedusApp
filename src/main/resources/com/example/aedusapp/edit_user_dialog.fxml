@@ -9,7 +9,7 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
-<VBox spacing="15.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.aedusapp.controllers.EditUserController" style="-fx-padding: 20; -fx-background-color: white;">
+<VBox spacing="15.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.aedusapp.controllers.EditUserController" styleClass="content-panel">
     
     <Label text="Editar Usuario" styleClass="page-title" style="-fx-font-size: 20px;" />
     

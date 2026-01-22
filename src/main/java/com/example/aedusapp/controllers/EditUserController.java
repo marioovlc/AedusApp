@@ -61,14 +61,18 @@ public class EditUserController {
     private void handleSave() {
         if (isInputValid()) {
             // Actualizar el objeto usuario con los nuevos datos
+            String nombre = txtNombre.getText();
+            String email = txtEmail.getText();
+            String password = txtPassword.getText().isEmpty() ? usuario.getPassword() : txtPassword.getText();
+            int roleId = comboRole.getValue().equals("Administrador") ? 1 : 2;
+
             usuario = new Usuario(
                     usuario.getId(),
-                    txtNombre.getText(),
-                    txtEmail.getText(),
-                    // Si la contraseña está vacía, mantener la vieja. Si no, usar la nueva.
-                    txtPassword.getText().isEmpty() ? usuario.getPassword() : txtPassword.getText(),
+                    nombre,
+                    email,
+                    password,
                     usuario.getStatus(),
-                    comboRole.getValue().equals("Administrador") ? 1 : 2);
+                    roleId);
 
             saveClicked = true; // Marcar como guardado
             closeStage(); // Cerrar ventana

@@ -120,13 +120,32 @@ public class UsuarioDAO {
 
                 // Si encuentra un resultado, crea el objeto Usuario
                 if (rs.next()) {
+                    int id = rs.getInt("id");
+
+                    // Obtener roles
+                    List<Integer> roles = new ArrayList<>();
+                    String sqlRoles = "SELECT rol_id FROM usuario_roles WHERE usuario_id = ?";
+                    try (PreparedStatement stmtRoles = conn.prepareStatement(sqlRoles)) {
+                        stmtRoles.setInt(1, id);
+                        ResultSet rsRoles = stmtRoles.executeQuery();
+                        while (rsRoles.next()) {
+                            roles.add(rsRoles.getInt("rol_id"));
+                        }
+                    }
+
+                    // Fallback para roles antiguos si la tabla usuario_roles está vacía para este
+                    // usuario
+                    if (roles.isEmpty() && rs.getInt("rol_id") != 0) {
+                        roles.add(rs.getInt("rol_id"));
+                    }
+
                     usuario = new Usuario(
-                            rs.getInt("id"),
+                            id,
                             rs.getString("nombre"),
                             rs.getString("email"),
                             rs.getString("password"),
                             rs.getString("status"),
-                            rs.getInt("rol_id"));
+                            roles);
                 }
             }
         } catch (SQLException e) {
@@ -138,7 +157,8 @@ public class UsuarioDAO {
 
     // Registrar un nuevo usuario (Por defecto PENDING)
     public boolean registrarUsuario(Usuario usuario) {
-        String sql = "INSERT INTO usuarios (nombre, email, password, status, rol_id) VALUES (?, ?, ?, 'PENDING', ?)";
+        String sql = "INSERT INTO usuarios (nombre, email, password, status) VALUES (?, ?, ?, 'PENDING') RETURNING id";
+        // Nota: ya no insertamos rol_id directamente en usuarios a menos que sea legacy
 
         try {
             Connection conn = DBConnection.getConnection();
@@ -147,10 +167,35 @@ public class UsuarioDAO {
                 stmt.setString(1, usuario.getNombre());
                 stmt.setString(2, usuario.getEmail());
                 stmt.setString(3, usuario.getPassword());
-                stmt.setInt(4, usuario.getRoleId());
 
-                int rowsInserted = stmt.executeUpdate();
-                return rowsInserted > 0; // Devuelve true si se insertó fila
+                // Ejecutamos y obtenemos el ID generado
+                ResultSet rs = stmt.executeQuery();
+                if (rs.next()) {
+                    int newUserId = rs.getInt(1);
+
+                    // Insertar roles
+                    String sqlRol = "INSERT INTO usuario_roles (usuario_id, rol_id) VALUES (?, ?)";
+                    try (PreparedStatement stmtRol = conn.prepareStatement(sqlRol)) {
+                        List<Integer> roles = usuario.getRoles();
+                        if (roles == null || roles.isEmpty()) {
+                            // Asignar rol por defecto si no tiene, ej: Profesor (2) o el que venga en
+                            // legacy getRoleId
+                            int legacyRole = usuario.getRoleId();
+                            if (legacyRole > 0) {
+                                stmtRol.setInt(1, newUserId);
+                                stmtRol.setInt(2, legacyRole);
+                                stmtRol.executeUpdate();
+                            }
+                        } else {
+                            for (Integer roleId : roles) {
+                                stmtRol.setInt(1, newUserId);
+                                stmtRol.setInt(2, roleId);
+                                stmtRol.executeUpdate();
+                            }
+                        }
+                    }
+                    return true;
+                }
             }
         } catch (SQLException e) {
             e.printStackTrace();
