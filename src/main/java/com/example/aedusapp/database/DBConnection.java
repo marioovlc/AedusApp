@@ -2,36 +2,36 @@ package com.example.aedusapp.database;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.SQLException;
 
-// Clase utilitaria para conectar con la base de datos MySQL
 public class DBConnection {
     private static Connection connection;
 
-    // Método estático para obtener la conexión (Singleton simple)
     public static Connection getConnection() {
         try {
-            // 1. Cargar el "driver" (el traductor entre Java y MySQL)
-            Class.forName("com.mysql.cj.jdbc.Driver");
+            if (connection != null && !connection.isClosed()) {
+                return connection;
+            }
 
-            // 2. Establecer la conexión con la URL, usuario y contraseña
-            // Asegúrate de que tu base de datos se llame 'aedusdb' y las credenciales sean
-            // correctas
-            connection = DriverManager.getConnection(
-                    "jdbc:mysql://localhost:3306/aedusdb",
-                    "root",
-                    "root");
+            Class.forName("org.postgresql.Driver");
 
-            System.out.println("Conexión exitosa a la base de datos.");
+            // Configuración de conexión para Neon
+            String url = "jdbc:postgresql://ep-mute-frog-agiqzzew-pooler.c-2.eu-central-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require&currentSchema=gestion_incidencias";
+            String user = "neondb_owner";
+            String pass = "npg_r9CQd1vZMIVD";
 
-        } catch (ClassNotFoundException e) {
-            System.err.println("Error: No se encontró el driver de MySQL.");
-            e.printStackTrace();
-        } catch (SQLException e) {
-            System.err.println("Error al conectar con la base de datos.");
+            connection = DriverManager.getConnection(url, user, pass);
+
+            // Forzar el esquema explícitamente por si el parámetro de URL falla
+            try (java.sql.Statement callbackStmt = connection.createStatement()) {
+                callbackStmt.execute("SET search_path TO gestion_incidencias");
+            }
+
+            System.out.println("Conexión exitosa a la base de datos Neon.");
+
+        } catch (Exception e) {
+            System.err.println("Error crítico de conexión:");
             e.printStackTrace();
         }
-
         return connection;
     }
 }

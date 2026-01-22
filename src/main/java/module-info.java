@@ -3,7 +3,7 @@ module com.example.aedusapp {
     requires javafx.fxml;
     requires atlantafx.base;
     requires java.sql;
-    requires mysql.connector.j;
+    requires org.postgresql.jdbc;
     requires transitive javafx.graphics;
 
     opens com.example.aedusapp to javafx.fxml;
