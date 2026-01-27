@@ -236,7 +236,7 @@ public class LogDAO {
             // Ajustar fecha fin al final del día
             Timestamp fechaFin = new Timestamp(fin.getTime() + (24 * 60 * 60 * 1000) - 1);
             stmt.setTimestamp(2, fechaFin);
-            
+
             ResultSet rs = stmt.executeQuery();
 
             while (rs.next()) {

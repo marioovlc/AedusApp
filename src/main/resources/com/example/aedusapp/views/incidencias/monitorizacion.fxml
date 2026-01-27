@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Priority?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Text?>
+
+<HBox spacing="20.0" styleClass="content-area" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" 
+      fx:controller="com.example.aedusapp.controllers.incidencias.MonitorizacionController">
+    <padding>
+        <Insets bottom="30.0" left="40.0" right="40.0" top="30.0" />
+    </padding>
+
+    <!-- Panel izquierdo: Tabla de incidencias -->
+    <VBox spacing="20.0" HBox.hgrow="ALWAYS">
+        <!-- Header Section -->
+        <VBox spacing="5.0">
+            <Label styleClass="page-title" text="Monitorización de Tickets" />
+            <Label styleClass="page-subtitle" text="Gestión de estados y resolución de incidencias" />
+        </VBox>
+
+        <!-- Tabla de incidencias -->
+        <TableView fx:id="tablaIncidencias" VBox.vgrow="ALWAYS" styleClass="data-table">
+            <columns>
+                <TableColumn fx:id="colId" prefWidth="60.0" text="ID" />
+                <TableColumn fx:id="colTitulo" prefWidth="250.0" text="Título" />
+                <TableColumn fx:id="colEstado" prefWidth="150.0" text="Estado" />
+                <TableColumn fx:id="colCreador" prefWidth="150.0" text="Creado por" />
+                <TableColumn fx:id="colFecha" prefWidth="140.0" text="Fecha" />
+            </columns>
+            <columnResizePolicy>
+                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+            </columnResizePolicy>
+        </TableView>
+    </VBox>
+
+    <!-- Panel derecho: Detalles de la incidencia seleccionada -->
+    <VBox fx:id="panelDetalles" prefWidth="350.0" spacing="15.0" styleClass="details-panel">
+        <padding>
+            <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
+        </padding>
+
+        <Label styleClass="details-header" text="Detalles del Ticket" />
+        <Separator />
+
+        <!-- Título de la incidencia -->
+        <VBox spacing="5.0">
+            <Label styleClass="details-label" text="Título:" />
+            <Label fx:id="lblDetallesTitulo" styleClass="details-value" wrapText="true" />
+        </VBox>
+
+        <!-- Descripción -->
+        <VBox spacing="5.0">
+            <Label styleClass="details-label" text="Descripción:" />
+            <ScrollPane fitToWidth="true" maxHeight="150.0" styleClass="description-scroll">
+                <Text fx:id="txtDetallesDescripcion" wrappingWidth="290.0" styleClass="details-description" />
+            </ScrollPane>
+        </VBox>
+
+        <!-- Imagen adjunta (si existe) -->
+        <VBox spacing="5.0">
+            <Label styleClass="details-label" text="Imagen adjunta:" />
+            <ImageView fx:id="imgDetalles" fitHeight="200.0" fitWidth="300.0" preserveRatio="true" styleClass="details-image" />
+        </VBox>
+
+        <Separator />
+
+        <!-- Sección de acciones -->
+        <Label styleClass="details-label" text="Cambiar Estado:" />
+
+        <VBox spacing="10.0">
+            <Button fx:id="btnMarcarLeido" maxWidth="Infinity" styleClass="action-button,status-leido-btn" text="Marcar como Leído" />
+            <Button fx:id="btnMarcarEnRevision" maxWidth="Infinity" styleClass="action-button,status-revision-btn" text="Marcar En Revisión" />
+            <Button fx:id="btnMarcarAcabado" maxWidth="Infinity" styleClass="action-button,status-acabado-btn" text="Marcar como Acabado" />
+        </VBox>
+
+        <Separator />
+
+        <!-- Botón de eliminación -->
+        <Button fx:id="btnEliminar" maxWidth="Infinity" styleClass="action-button,danger-button" text="🗑 Eliminar Ticket" />
+    </VBox>
+</HBox>

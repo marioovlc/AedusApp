@@ -48,6 +48,17 @@
       <artifactId>postgresql</artifactId>
       <version>42.7.2</version>
     </dependency>
+    <!-- ICONOS IKONLI -->
+    <dependency>
+      <groupId>org.kordamp.ikonli</groupId>
+      <artifactId>ikonli-javafx</artifactId>
+      <version>12.3.1</version>
+    </dependency>
+    <dependency>
+      <groupId>org.kordamp.ikonli</groupId>
+      <artifactId>ikonli-fontawesome5-pack</artifactId>
+      <version>12.3.1</version>
+    </dependency>
   </dependencies>
 
   <build>

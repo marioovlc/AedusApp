@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox spacing="15.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.aedusapp.controllers.usuarios.EditUserController" styleClass="content-panel">
+    
+    <Label text="Editar Usuario" styleClass="page-title" style="-fx-font-size: 20px;" />
+    
+    <VBox spacing="5.0">
+        <Label text="Nombre" styleClass="input-label"/>
+        <TextField fx:id="txtNombre" />
+    </VBox>
+
+    <VBox spacing="5.0">
+        <Label text="Email" styleClass="input-label"/>
+        <TextField fx:id="txtEmail" />
+    </VBox>
+    
+    <VBox spacing="5.0">
+        <Label text="Roles" styleClass="input-label"/>
+        <VBox spacing="5.0" style="-fx-padding: 5;">
+            <javafx.scene.control.CheckBox fx:id="checkAdmin" text="Administrador" />
+            <javafx.scene.control.CheckBox fx:id="checkProfesor" text="Profesor" />
+            <javafx.scene.control.CheckBox fx:id="checkMantenimiento" text="Mantenimiento" />
+        </VBox>
+    </VBox>
+
+    <VBox spacing="5.0">
+        <Label text="Nueva Contraseña (Dejar en blanco para mantener)" styleClass="input-label"/>
+        <PasswordField fx:id="txtPassword" />
+    </VBox>
+
+    <HBox alignment="CENTER_RIGHT" spacing="10.0" style="-fx-padding: 10 0 0 0;">
+        <Button text="Cancelar" onAction="#handleCancel" styleClass="action-button, danger" />
+        <Button text="Guardar" onAction="#handleSave" styleClass="action-button, success" />
+    </HBox>
+
+</VBox>

@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Tab?>
+<?import javafx.scene.control.TabPane?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.Region?>
+
+<VBox spacing="10.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.aedusapp.controllers.usuarios.AdminUsersController">
+    <padding>
+        <Insets bottom="30.0" left="40.0" right="40.0" top="30.0" />
+    </padding>
+
+    <!-- Header with visual separation -->
+    <VBox spacing="5.0">
+        <Label styleClass="page-title" text="Administración de Usuarios" />
+        <Label styleClass="page-subtitle" text="Gestión de permisos y solicitudes de acceso" />
+        <Region prefHeight="10.0" />
+    </VBox>
+
+    <TabPane tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS" styleClass="tab-pane">
+        <tabs>
+            <!-- Tab 1: Active Users -->
+            <Tab text="Usuarios Activos">
+                <content>
+                    <VBox spacing="20.0">
+                        <padding>
+                            <Insets top="20.0" left="10.0" right="10.0" bottom="10.0" />
+                        </padding>
+                        
+                        <!-- Actions Bar -->
+                        <HBox alignment="CENTER_LEFT" spacing="15.0" styleClass="actions-bar">
+                             <Button onAction="#handleEditUser" styleClass="action-button, primary" text="Editar Usuario" />
+                             <Region HBox.hgrow="ALWAYS" />
+                             <Button onAction="#handleDeleteUser" styleClass="action-button, danger" text="Eliminar Usuario" />
+                        </HBox>
+
+                        <TableView fx:id="tableUsuarios" VBox.vgrow="ALWAYS">
+                            <columns>
+                                <TableColumn fx:id="colId" prefWidth="60.0" text="ID" />
+                                <TableColumn fx:id="colNombre" prefWidth="250.0" text="Nombre" />
+                                <TableColumn fx:id="colEmail" prefWidth="300.0" text="Email" />
+                                <TableColumn fx:id="colRol" prefWidth="120.0" text="Rol" />
+                                <TableColumn fx:id="colStatus" prefWidth="120.0" text="Estado" />
+                            </columns>
+                            <columnResizePolicy>
+                                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                            </columnResizePolicy>
+                        </TableView>
+                    </VBox>
+                </content>
+            </Tab>
+
+            <!-- Tab 2: Pending Requests -->
+            <Tab text="Solicitudes Pendientes">
+                <content>
+                    <VBox spacing="20.0">
+                        <padding>
+                            <Insets top="20.0" left="10.0" right="10.0" bottom="10.0" />
+                        </padding>
+                        
+                        <HBox alignment="CENTER_LEFT" spacing="10.0">
+                            <Label text="Usuarios esperando aprobación" styleClass="page-subtitle" />
+                        </HBox>
+
+                        <TableView fx:id="tableSolicitudes" VBox.vgrow="ALWAYS">
+                            <columns>
+                                <TableColumn fx:id="colReqId" prefWidth="60.0" text="ID" />
+                                <TableColumn fx:id="colReqNombre" prefWidth="250.0" text="Nombre" />
+                                <TableColumn fx:id="colReqEmail" prefWidth="300.0" text="Email" />
+                                <TableColumn fx:id="colReqStatus" prefWidth="120.0" text="Estado" />
+                            </columns>
+                            <columnResizePolicy>
+                                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                            </columnResizePolicy>
+                        </TableView>
+                        
+                        <!-- Actions Footer -->
+                        <HBox alignment="CENTER_RIGHT" spacing="15.0">
+                             <Button onAction="#handleDenyRequest" styleClass="action-button, danger" text="Rechazar Solicitud" />
+                             <Button onAction="#handleApproveRequest" styleClass="action-button, success" text="Aprobar Solicitud" />
+                        </HBox>
+                    </VBox>
+                </content>
+            </Tab>
+        </tabs>
+    </TabPane>
+</VBox>

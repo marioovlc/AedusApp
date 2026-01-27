@@ -13,6 +13,7 @@ public class Incidencia {
     private String imagenRuta; // Ruta de la imagen adjunta
     private String categoriaNombre; // Nombre de la categoría (para mostrar)
     private String aulaNombre; // Nombre del aula (para mostrar)
+    private String aulaTipo; // Tipo de aula (Informática, Matemáticas, etc.)
 
     public Incidencia() {
     }
@@ -132,5 +133,13 @@ public class Incidencia {
 
     public void setAulaNombre(String aulaNombre) {
         this.aulaNombre = aulaNombre;
+    }
+
+    public String getAulaTipo() {
+        return aulaTipo;
+    }
+
+    public void setAulaTipo(String aulaTipo) {
+        this.aulaTipo = aulaTipo;
     }
 }

@@ -16,23 +16,20 @@ public class UsuarioDAO {
         List<Usuario> usuarios = new ArrayList<>();
         String sql = "SELECT * FROM usuarios WHERE status = ?";
 
-        try {
-            Connection conn = DBConnection.getConnection(); // Conectar a la BD
-            if (conn != null) {
-                PreparedStatement stmt = conn.prepareStatement(sql);
-                stmt.setString(1, status);
-                ResultSet rs = stmt.executeQuery(); // Ejecutar consulta
+        try (Connection conn = DBConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-                // Recorrer los resultados y crear objetos Usuario
-                while (rs.next()) {
-                    usuarios.add(new Usuario(
-                            rs.getInt("id"),
-                            rs.getString("nombre"),
-                            rs.getString("email"),
-                            rs.getString("password"),
-                            rs.getString("status"),
-                            rs.getInt("rol_id")));
-                }
+            stmt.setString(1, status);
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                usuarios.add(new Usuario(
+                        rs.getInt("id"),
+                        rs.getString("nombre"),
+                        rs.getString("email"),
+                        rs.getString("password"),
+                        rs.getString("status"),
+                        rs.getInt("rol_id")));
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -45,21 +42,18 @@ public class UsuarioDAO {
         List<Usuario> usuarios = new ArrayList<>();
         String sql = "SELECT * FROM usuarios";
 
-        try {
-            Connection conn = DBConnection.getConnection();
-            if (conn != null) {
+        try (Connection conn = DBConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql);
-                ResultSet rs = stmt.executeQuery();
+                ResultSet rs = stmt.executeQuery()) {
 
-                while (rs.next()) {
-                    usuarios.add(new Usuario(
-                            rs.getInt("id"),
-                            rs.getString("nombre"),
-                            rs.getString("email"),
-                            rs.getString("password"),
-                            rs.getString("status"),
-                            rs.getInt("rol_id")));
-                }
+            while (rs.next()) {
+                usuarios.add(new Usuario(
+                        rs.getInt("id"),
+                        rs.getString("nombre"),
+                        rs.getString("email"),
+                        rs.getString("password"),
+                        rs.getString("status"),
+                        rs.getInt("rol_id")));
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -69,18 +63,41 @@ public class UsuarioDAO {
 
     // Actualizar los datos de un usuario existente
     public boolean actualizarUsuario(Usuario usuario) {
-        String sql = "UPDATE usuarios SET nombre=?, email=?, rol_id=?, status=?, password=? WHERE id=?";
-        try {
-            Connection conn = DBConnection.getConnection();
+        String sql = "UPDATE usuarios SET nombre=?, email=?, status=?, password=? WHERE id=?";
+        try (Connection conn = DBConnection.getConnection()) {
             if (conn != null) {
-                PreparedStatement stmt = conn.prepareStatement(sql);
-                stmt.setString(1, usuario.getNombre());
-                stmt.setString(2, usuario.getEmail());
-                stmt.setInt(3, usuario.getRoleId());
-                stmt.setString(4, usuario.getStatus());
-                stmt.setString(5, usuario.getPassword());
-                stmt.setInt(6, usuario.getId());
-                return stmt.executeUpdate() > 0; // Devuelve true si se actualizó algo
+                conn.setAutoCommit(false); // Iniciar transacción
+                try {
+                    PreparedStatement stmt = conn.prepareStatement(sql);
+                    stmt.setString(1, usuario.getNombre());
+                    stmt.setString(2, usuario.getEmail());
+                    stmt.setString(3, usuario.getStatus());
+                    stmt.setString(4, usuario.getPassword());
+                    stmt.setInt(5, usuario.getId());
+                    stmt.executeUpdate();
+
+                    // Actualizar roles
+                    String sqlDeleteRoles = "DELETE FROM usuario_roles WHERE usuario_id = ?";
+                    try (PreparedStatement delStmt = conn.prepareStatement(sqlDeleteRoles)) {
+                        delStmt.setInt(1, usuario.getId());
+                        delStmt.executeUpdate();
+                    }
+
+                    String sqlInsertRol = "INSERT INTO usuario_roles (usuario_id, rol_id) VALUES (?, ?)";
+                    try (PreparedStatement insStmt = conn.prepareStatement(sqlInsertRol)) {
+                        for (Integer roleId : usuario.getRoles()) {
+                            insStmt.setInt(1, usuario.getId());
+                            insStmt.setInt(2, roleId);
+                            insStmt.executeUpdate();
+                        }
+                    }
+
+                    conn.commit();
+                    return true;
+                } catch (SQLException e) {
+                    conn.rollback();
+                    e.printStackTrace();
+                }
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -88,16 +105,28 @@ public class UsuarioDAO {
         return false;
     }
 
+    private List<Integer> obtenerRolesUsuario(Connection conn, int userId) throws SQLException {
+        List<Integer> roles = new ArrayList<>();
+        String sql = "SELECT rol_id FROM usuario_roles WHERE usuario_id = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, userId);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                roles.add(rs.getInt("rol_id"));
+            }
+        }
+        return roles;
+    }
+
     // Eliminar un usuario por su ID
     public boolean eliminarUsuario(int id) {
         String sql = "DELETE FROM usuarios WHERE id=?";
-        try {
-            Connection conn = DBConnection.getConnection();
-            if (conn != null) {
-                PreparedStatement stmt = conn.prepareStatement(sql);
-                stmt.setInt(1, id);
-                return stmt.executeUpdate() > 0;
-            }
+        try (Connection conn = DBConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, id);
+            return stmt.executeUpdate() > 0;
+
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -109,16 +138,13 @@ public class UsuarioDAO {
         String sql = "SELECT * FROM usuarios WHERE email = ? AND password = ? AND status = 'ACTIVE'";
         Usuario usuario = null;
 
-        try {
-            Connection conn = DBConnection.getConnection();
-            if (conn != null) {
-                PreparedStatement stmt = conn.prepareStatement(sql);
-                stmt.setString(1, email);
-                stmt.setString(2, password);
+        try (Connection conn = DBConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-                ResultSet rs = stmt.executeQuery();
+            stmt.setString(1, email);
+            stmt.setString(2, password);
 
-                // Si encuentra un resultado, crea el objeto Usuario
+            try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     int id = rs.getInt("id");
 
@@ -127,14 +153,13 @@ public class UsuarioDAO {
                     String sqlRoles = "SELECT rol_id FROM usuario_roles WHERE usuario_id = ?";
                     try (PreparedStatement stmtRoles = conn.prepareStatement(sqlRoles)) {
                         stmtRoles.setInt(1, id);
-                        ResultSet rsRoles = stmtRoles.executeQuery();
-                        while (rsRoles.next()) {
-                            roles.add(rsRoles.getInt("rol_id"));
+                        try (ResultSet rsRoles = stmtRoles.executeQuery()) {
+                            while (rsRoles.next()) {
+                                roles.add(rsRoles.getInt("rol_id"));
+                            }
                         }
                     }
 
-                    // Fallback para roles antiguos si la tabla usuario_roles está vacía para este
-                    // usuario
                     if (roles.isEmpty() && rs.getInt("rol_id") != 0) {
                         roles.add(rs.getInt("rol_id"));
                     }
@@ -158,28 +183,22 @@ public class UsuarioDAO {
     // Registrar un nuevo usuario (Por defecto PENDING)
     public boolean registrarUsuario(Usuario usuario) {
         String sql = "INSERT INTO usuarios (nombre, email, password, status) VALUES (?, ?, ?, 'PENDING') RETURNING id";
-        // Nota: ya no insertamos rol_id directamente en usuarios a menos que sea legacy
 
-        try {
-            Connection conn = DBConnection.getConnection();
-            if (conn != null) {
-                PreparedStatement stmt = conn.prepareStatement(sql);
-                stmt.setString(1, usuario.getNombre());
-                stmt.setString(2, usuario.getEmail());
-                stmt.setString(3, usuario.getPassword());
+        try (Connection conn = DBConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-                // Ejecutamos y obtenemos el ID generado
-                ResultSet rs = stmt.executeQuery();
+            stmt.setString(1, usuario.getNombre());
+            stmt.setString(2, usuario.getEmail());
+            stmt.setString(3, usuario.getPassword());
+
+            try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     int newUserId = rs.getInt(1);
 
-                    // Insertar roles
                     String sqlRol = "INSERT INTO usuario_roles (usuario_id, rol_id) VALUES (?, ?)";
                     try (PreparedStatement stmtRol = conn.prepareStatement(sqlRol)) {
                         List<Integer> roles = usuario.getRoles();
                         if (roles == null || roles.isEmpty()) {
-                            // Asignar rol por defecto si no tiene, ej: Profesor (2) o el que venga en
-                            // legacy getRoleId
                             int legacyRole = usuario.getRoleId();
                             if (legacyRole > 0) {
                                 stmtRol.setInt(1, newUserId);

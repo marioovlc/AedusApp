@@ -9,9 +9,9 @@ public class IncidenciaDAO {
 
     public boolean crearIncidencia(Incidencia incidencia) {
         // Asignamos estado inicial 'NO LEIDO'
-        String sql = "INSERT INTO incidencias (titulo, descripcion, usuario_id, aula_id, categoria_id, estado_id, fecha_creacion, imagen_ruta) "
+        String sql = "INSERT INTO incidencias (titulo, descripcion, usuario_id, aula_id, categoria_id, aula_tipo, estado_id, fecha_creacion, imagen_ruta) "
                 +
-                "VALUES (?, ?, ?, ?, ?, (SELECT id FROM estados WHERE nombre = 'NO LEIDO'), NOW(), ?)";
+                "VALUES (?, ?, ?, ?, ?, ?, (SELECT id FROM estados WHERE nombre = 'NO LEIDO'), NOW(), ?)";
 
         try (Connection conn = DBConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -23,7 +23,8 @@ public class IncidenciaDAO {
             stmt.setInt(3, incidencia.getUsuarioId());
             stmt.setInt(4, incidencia.getAulaId());
             stmt.setInt(5, incidencia.getCategoriaId());
-            stmt.setString(6, incidencia.getImagenRuta()); // Puede ser null
+            stmt.setString(6, incidencia.getAulaTipo());
+            stmt.setString(7, incidencia.getImagenRuta()); // Puede ser null
 
             return stmt.executeUpdate() > 0;
 
@@ -33,21 +34,24 @@ public class IncidenciaDAO {
         }
     }
 
-    public List<Incidencia> obtenerIncidenciasPorUsuario(int usuarioId) {
+    public List<Incidencia> obtenerIncidenciasPorUsuarioPaginado(int usuarioId, int limit, int offset) {
         List<Incidencia> incidencias = new ArrayList<>();
-        String sql = "SELECT i.id, i.titulo, i.descripcion, i.fecha_creacion, i.imagen_ruta, " +
+        String sql = "SELECT i.id, i.titulo, i.descripcion, i.fecha_creacion, i.imagen_ruta, i.aula_tipo, " +
                 "e.nombre as estado_nombre, c.nombre as categoria_nombre, a.nombre as aula_nombre " +
                 "FROM incidencias i " +
                 "JOIN estados e ON i.estado_id = e.id " +
                 "JOIN categorias c ON i.categoria_id = c.id " +
                 "JOIN aulas a ON i.aula_id = a.id " +
                 "WHERE i.usuario_id = ? " +
-                "ORDER BY i.fecha_creacion DESC";
+                "ORDER BY i.fecha_creacion DESC " +
+                "LIMIT ? OFFSET ?";
 
         try (Connection conn = DBConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setInt(1, usuarioId);
+            stmt.setInt(2, limit);
+            stmt.setInt(3, offset);
             ResultSet rs = stmt.executeQuery();
 
             while (rs.next()) {
@@ -60,6 +64,7 @@ public class IncidenciaDAO {
                 inc.setImagenRuta(rs.getString("imagen_ruta"));
                 inc.setCategoriaNombre(rs.getString("categoria_nombre"));
                 inc.setAulaNombre(rs.getString("aula_nombre"));
+                inc.setAulaTipo(rs.getString("aula_tipo"));
 
                 incidencias.add(inc);
             }

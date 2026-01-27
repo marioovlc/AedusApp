@@ -4,14 +4,10 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 
 public class DBConnection {
-    private static Connection connection;
 
     public static Connection getConnection() {
+        Connection connection = null;
         try {
-            if (connection != null && !connection.isClosed()) {
-                return connection;
-            }
-
             Class.forName("org.postgresql.Driver");
 
             // Configuración de conexión para Neon
@@ -26,10 +22,11 @@ public class DBConnection {
                 callbackStmt.execute("SET search_path TO gestion_incidencias");
             }
 
-            System.out.println("Conexión exitosa a la base de datos Neon.");
+            // System.out.println("BD Conectada correctamente."); // Comentado para reducir
+            // ruido en consola
 
         } catch (Exception e) {
-            System.err.println("Error crítico de conexión:");
+            System.err.println("Error de conexión:");
             e.printStackTrace();
         }
         return connection;
