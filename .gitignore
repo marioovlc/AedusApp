@@ -36,3 +36,12 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+### Environment Variables ###
+.env
+uploads/
+*.wav
+*.mp3
+.DS_Store
+sqlite_db/
+*.log

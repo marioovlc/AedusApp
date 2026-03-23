@@ -3,109 +3,126 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
-<?import javafx.scene.control.TableColumn?>
-<?import javafx.scene.control.TableView?>
-<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
-<?import javafx.scene.layout.VBox?>
-<?import javafx.scene.text.Font?>
-<?import javafx.scene.image.Image?>
-<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.StackPane?>
-
+<?import javafx.scene.layout.VBox?>
 <?import org.kordamp.ikonli.javafx.FontIcon?>
 
-<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="768.0" prefWidth="1024.0" styleClass="root" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.aedusapp.controllers.general.MainController">
+<BorderPane fx:id="mainBorderPane" minHeight="620.0" minWidth="960.0"
+            prefHeight="800.0" prefWidth="1200.0" styleClass="root"
+            xmlns="http://javafx.com/javafx/19"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.example.aedusapp.controllers.general.MainController">
 
-    <!-- Left Sidebar -->
+    <!-- ══════════════════════════════════════════ -->
+    <!--  SIDEBAR PREMIUM                           -->
+    <!-- ══════════════════════════════════════════ -->
     <left>
-        <VBox prefWidth="240.0" spacing="10.0" styleClass="sidebar">
+        <VBox prefWidth="260.0" styleClass="sidebar" spacing="4.0">
             <padding>
-                <Insets bottom="20.0" left="20.0" right="20.0" top="30.0" />
+                <Insets bottom="24.0" left="20.0" right="20.0" top="28.0" />
             </padding>
-            <!-- Logo -->
-            <StackPane>
-                <VBox.margin>
-                    <Insets bottom="20.0" />
-                </VBox.margin>
-                <ImageView fitHeight="150.0" pickOnBounds="true" preserveRatio="true">
-                   <image>
-                      <Image url="@../../images/logo.png" />
-                   </image>
+
+            <!-- Logo marca -->
+            <StackPane styleClass="sidebar-logo-container">
+                <ImageView fx:id="logoView" fitHeight="140.0" fitWidth="180.0" pickOnBounds="true" preserveRatio="true" styleClass="app-logo">
+                    <image><Image url="@../../images/logo.png" /></image>
                 </ImageView>
+                <VBox.margin><Insets bottom="20.0"/></VBox.margin>
             </StackPane>
-            
-            <Button fx:id="btnDashboard" maxWidth="Infinity" styleClass="sidebar-button, active" text="Dashboard">
-                <graphic>
-                    <FontIcon iconLiteral="fas-tachometer-alt" iconSize="20" styleClass="sidebar-icon"/>
-                </graphic>
+
+            <!-- ── Sección PRINCIPAL ── -->
+            <Label text="PRINCIPAL" styleClass="sidebar-section-label"/>
+            <VBox.margin><Insets top="2.0"/></VBox.margin>
+
+            <Button fx:id="btnDashboard" maxWidth="Infinity" styleClass="sidebar-button,active" text="Dashboard">
+                <graphic><FontIcon iconLiteral="fas-tachometer-alt" iconSize="18" styleClass="sidebar-icon"/></graphic>
             </Button>
-            <Button fx:id="btnIncidencias" maxWidth="Infinity" styleClass="sidebar-button" text="Incidencias">
-                <graphic>
-                    <FontIcon iconLiteral="fas-exclamation-triangle" iconSize="20" styleClass="sidebar-icon"/>
-                </graphic>
+
+            <HBox alignment="CENTER_LEFT" spacing="0">
+                <Button fx:id="btnIncidencias" maxWidth="Infinity" styleClass="sidebar-button" text="Incidencias" HBox.hgrow="ALWAYS">
+                    <graphic><FontIcon iconLiteral="fas-exclamation-triangle" iconSize="18" styleClass="sidebar-icon"/></graphic>
+                </Button>
+                <Label fx:id="badgeIncidencias" styleClass="sidebar-badge" visible="false" managed="false"/>
+            </HBox>
+
+            <Button fx:id="btnConnectHub" maxWidth="Infinity" styleClass="sidebar-button" text="Connect Hub">
+                <graphic><FontIcon iconLiteral="fas-comments" iconSize="18" styleClass="sidebar-icon"/></graphic>
             </Button>
-            <Button fx:id="btnUsuarios" maxWidth="Infinity" styleClass="sidebar-button" text="Usuarios">
-                 <graphic>
-                    <FontIcon iconLiteral="fas-users" iconSize="20" styleClass="sidebar-icon"/>
-                </graphic>
-            </Button>
+
+
+
+
+            <!-- ── Sección ADMINISTRACIÓN ── -->
+            <Label text="ADMINISTRACIÓN" styleClass="sidebar-section-label">
+                <VBox.margin><Insets top="16.0"/></VBox.margin>
+            </Label>
+
+            <HBox alignment="CENTER_LEFT" spacing="0">
+                <Button fx:id="btnUsuarios" maxWidth="Infinity" styleClass="sidebar-button" text="Usuarios" HBox.hgrow="ALWAYS">
+                    <graphic><FontIcon iconLiteral="fas-users" iconSize="18" styleClass="sidebar-icon"/></graphic>
+                </Button>
+                <Label fx:id="badgeSolicitudes" styleClass="sidebar-badge" visible="false" managed="false"/>
+            </HBox>
+
             <Button fx:id="btnMonitorizacion" maxWidth="Infinity" styleClass="sidebar-button" text="Monitorización">
-                <graphic>
-                    <FontIcon iconLiteral="fas-chart-line" iconSize="20" styleClass="sidebar-icon"/>
-                </graphic>
+                <graphic><FontIcon iconLiteral="fas-chart-line" iconSize="18" styleClass="sidebar-icon"/></graphic>
             </Button>
             <Button fx:id="btnLogs" maxWidth="Infinity" styleClass="sidebar-button" text="Logs de Sistema">
+                <graphic><FontIcon iconLiteral="fas-history" iconSize="18" styleClass="sidebar-icon"/></graphic>
+            </Button>
+            <Button fx:id="btnTienda" maxWidth="Infinity" styleClass="sidebar-button" text="Tienda">
                 <graphic>
-                    <FontIcon iconLiteral="fas-history" iconSize="20" styleClass="sidebar-icon"/>
+                    <Region styleClass="sidebar-icon" style="-fx-shape: 'M895.9 422.5l-44.5-256.3c-1.5-8.7-9.3-15.1-18.1-15.1H190.9c-8.9 0-16.6 6.4-18.1 15.1L128.3 422.5c-4.4 25.4-2 56 18.5 75.3 4 3.8 8.4 7.2 13.2 10V840c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V507.8c4.8-2.8 9.3-6.2 13.2-10 20.6-19.1 23-49.8 18.7-75.3zM644 800H380V536h264v264zm-52-411.3c-23.3 0-42.2-18.9-42.2-42.2 0-3.5.5-7 1.3-10.3l17.2-74.2v-1.1h102v1.1l17.2 74.2c.8 3.3 1.3 6.8 1.3 10.3 0 23.3-18.9 42.2-42.2 42.2h-54.6zm-208 0h-54.6c-23.3 0-42.2-18.9-42.2-42.2 0-3.5.5-7 1.3-10.3l17.2-74.2v-1.1h102v1.1l17.2 74.2c.8 3.3 1.3 6.8 1.3 10.3 0 23.3-18.9 42.2-42.2 42.2zm-162.9 0c-26.6 0-45.6-21.5-45.6-48 0-4.3.7-8.6 1.9-12.8l21.3-92.1h100.8l-15.1 82.5c0 .3-.1.6-.1 1-.1 15.6-12.7 28.3-28.3 28.3h-34.9zm496.1-28.3c0 23.3-18.9 42.2-42.2 42.2H618c-23.3 0-42.2-18.9-42.2-42.2 0-3.5.5-7 1.3-10.3l17.2-74.2v-1.1h102v1.1l17.2 74.2c.8 3.3 1.3 6.8 1.3 10.3zm191 0c0 .4-.1.7-.1 1l-15.1-82.5H805l21.4 92.1c1.3 4.2 1.9 8.5 1.9 12.8 0 26.5-19 48-45.6 48h-34.9c-15.6 0-28.2-12.7-28.3-28.3z'; -fx-background-color: #94a3b8; -fx-min-width: 18px; -fx-min-height: 18px; -fx-max-width: 18px; -fx-max-height: 18px;" />
                 </graphic>
             </Button>
 
-            
-            <Region VBox.vgrow="ALWAYS" />
+            <!-- Spacer -->
+            <Region VBox.vgrow="ALWAYS"/>
 
-            <Label fx:id="lblUsuario" styleClass="user-label" text="Usuario: ..." />
-            
+            <!-- ── Avatar / Perfil ── -->
+            <Separator styleClass="sidebar-divider">
+                <VBox.margin><Insets bottom="12.0"/></VBox.margin>
+            </Separator>
+
+            <!-- Card de usuario -->
+            <VBox styleClass="sidebar-user-card" spacing="4.0">
+                <padding><Insets bottom="14.0" left="14.0" right="14.0" top="14.0"/></padding>
+                <HBox alignment="CENTER_LEFT" spacing="12.0">
+                    <!-- Avatar placeholder circular -->
+                    <StackPane fx:id="sidebarAvatarStack" styleClass="avatar-circle">
+                        <Label fx:id="lblAvatarInicial" text="?" styleClass="avatar-initial"/>
+                        <ImageView fx:id="imgSidebarAvatar" fitWidth="36" fitHeight="36" preserveRatio="true" />
+                    </StackPane>
+                    <VBox spacing="2.0" HBox.hgrow="ALWAYS">
+                        <Label fx:id="lblUsuario" text="..." styleClass="user-name-label"/>
+                        <HBox spacing="8" alignment="CENTER_LEFT">
+                             <Label fx:id="lblUsuarioRol" text="Usuario" styleClass="user-role-label"/>
+                             <Label fx:id="lblAeduCoins" text="🪙 0" style="-fx-text-fill: #fcd34d; -fx-font-weight: bold; -fx-font-size: 11px;"/>
+                        </HBox>
+                    </VBox>
+                </HBox>
+            </VBox>
+
             <Button fx:id="btnConfiguracion" maxWidth="Infinity" styleClass="sidebar-button" text="Configuración">
-                 <graphic>
-                    <FontIcon iconLiteral="fas-cog" iconSize="20" styleClass="sidebar-icon"/>
-                </graphic>
+                <graphic><FontIcon iconLiteral="fas-cog" iconSize="18" styleClass="sidebar-icon"/></graphic>
             </Button>
-            <Button fx:id="btnCerrarSesion" maxWidth="Infinity" styleClass="sidebar-button" text="Cerrar Sesión">
-                <graphic>
-                    <FontIcon iconLiteral="fas-sign-out-alt" iconSize="20" styleClass="sidebar-icon"/>
-                </graphic>
+            <Button fx:id="btnCerrarSesion" maxWidth="Infinity" styleClass="sidebar-button,logout-btn" text="Cerrar Sesión">
+                <graphic><FontIcon iconLiteral="fas-sign-out-alt" iconSize="18" styleClass="sidebar-icon"/></graphic>
             </Button>
         </VBox>
     </left>
 
-    <!-- Main Content -->
+    <!-- ══════════════════════════════════════════ -->
+    <!--  CONTENIDO PRINCIPAL                       -->
+    <!-- ══════════════════════════════════════════ -->
     <center>
-        <VBox fx:id="dashboardView" spacing="20.0" styleClass="content-area">
-            <padding>
-                <Insets bottom="30.0" left="40.0" right="40.0" top="30.0" />
-            </padding>
-
-
-            
-            <!-- Header Section -->
-            <VBox spacing="5.0">
-                <Label styleClass="page-title" text="Bienvenido a Aedus" />
-                <Label styleClass="page-subtitle" text="Panel de control general" />
-            </VBox>
-            
-            <HBox spacing="20">
-                <VBox styleClass="dashboard-card" HBox.hgrow="ALWAYS">
-                    <Label text="Accesos Rápidos" style="-fx-font-weight: bold; -fx-font-size: 16px; -fx-text-fill: white;"/>
-                    <Label text="Utilice el menú lateral para navegar por las diferentes secciones." wrapText="true" style="-fx-text-fill: #94a3b8;"/>
-                </VBox>
-            </HBox>
-
-            <!-- Placeholder for future dashboard widgets -->
-             <Label text="Novedades del Centro" style="-fx-font-size: 18px; -fx-padding: 10 0 0 0;" />
-             <Label text="No hay novedades recientes." textFill="#7f8c8d" />
-        </VBox>
+        <VBox fx:id="dashboardView" styleClass="main-content"/>
     </center>
+
 </BorderPane>

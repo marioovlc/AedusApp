@@ -7,74 +7,112 @@
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.TextArea?>
 <?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.Tooltip?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.Region?>
 <?import javafx.scene.text.Font?>
 
-<VBox spacing="20.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.aedusapp.controllers.incidencias.IncidenciasController">
-    <padding>
-        <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
-    </padding>
+<VBox spacing="20.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.example.aedusapp.controllers.incidencias.IncidenciasController">
+    <padding><Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/></padding>
 
     <Label text="Gestión de Incidencias">
-        <font>
-            <Font size="24.0" />
-        </font>
+        <font><Font size="24.0"/></font>
     </Label>
 
     <HBox spacing="20.0" VBox.vgrow="ALWAYS">
-        <!-- Formulario de Creación -->
-        <!-- Formulario de Creación -->
-        <VBox spacing="15.0" styleClass="content-panel" minWidth="350">
-            <Label text="Nueva Incidencia" styleClass="h2" />
-            
+
+        <!-- Panel Izquierda: Formulario + sugerencia IA -->
+        <VBox spacing="14.0" styleClass="content-panel" minWidth="370">
+
+            <Label text="Nueva Incidencia" styleClass="h2"/>
+
             <javafx.scene.layout.GridPane hgap="10" vgap="10">
                 <columnConstraints>
                     <javafx.scene.layout.ColumnConstraints hgrow="NEVER" minWidth="80"/>
                     <javafx.scene.layout.ColumnConstraints hgrow="ALWAYS"/>
                 </columnConstraints>
-                
-                <Label text="Título:" styleClass="input-label" javafx.scene.layout.GridPane.rowIndex="0" javafx.scene.layout.GridPane.columnIndex="0"/>
-                <TextField fx:id="tituloField" promptText="Resumen del problema" javafx.scene.layout.GridPane.rowIndex="0" javafx.scene.layout.GridPane.columnIndex="1"/>
-                
-                <Label text="Aula:" styleClass="input-label" javafx.scene.layout.GridPane.rowIndex="1" javafx.scene.layout.GridPane.columnIndex="0"/>
-                <TextField fx:id="aulaField" promptText="Nº Aula" javafx.scene.layout.GridPane.rowIndex="1" javafx.scene.layout.GridPane.columnIndex="1"/>
 
-                <Label text="Tipo de Aula:" styleClass="input-label" javafx.scene.layout.GridPane.rowIndex="2" javafx.scene.layout.GridPane.columnIndex="0"/>
-                <ComboBox fx:id="aulaTipoCombo" prefWidth="200.0" promptText="Seleccionar..." javafx.scene.layout.GridPane.rowIndex="2" javafx.scene.layout.GridPane.columnIndex="1"/>
+                <Label text="Título:" styleClass="input-label"
+                       javafx.scene.layout.GridPane.rowIndex="0" javafx.scene.layout.GridPane.columnIndex="0"/>
+                <TextField fx:id="tituloField" promptText="Resumen del problema"
+                           javafx.scene.layout.GridPane.rowIndex="0" javafx.scene.layout.GridPane.columnIndex="1"/>
 
-                <Label text="Categoría:" styleClass="input-label" javafx.scene.layout.GridPane.rowIndex="3" javafx.scene.layout.GridPane.columnIndex="0"/>
-                <ComboBox fx:id="categoriaCombo" prefWidth="200.0" promptText="Seleccionar..." javafx.scene.layout.GridPane.rowIndex="3" javafx.scene.layout.GridPane.columnIndex="1"/>
+                <Label text="Aula:" styleClass="input-label"
+                       javafx.scene.layout.GridPane.rowIndex="1" javafx.scene.layout.GridPane.columnIndex="0"/>
+                <HBox spacing="5" alignment="CENTER_LEFT"
+                      javafx.scene.layout.GridPane.rowIndex="1" javafx.scene.layout.GridPane.columnIndex="1">
+                    <ComboBox fx:id="aulaCombo" promptText="Seleccionar Aula" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+                    <Button text="+" onAction="#handleNuevaAula" style="-fx-min-width: 30;">
+                        <tooltip><Tooltip text="Crear nueva aula"/></tooltip>
+                    </Button>
+                </HBox>
+
+                <Label text="Categoría:" styleClass="input-label"
+                       javafx.scene.layout.GridPane.rowIndex="2" javafx.scene.layout.GridPane.columnIndex="0"/>
+                <ComboBox fx:id="categoriaCombo" prefWidth="200.0" promptText="Seleccionar..."
+                          javafx.scene.layout.GridPane.rowIndex="2" javafx.scene.layout.GridPane.columnIndex="1"/>
             </javafx.scene.layout.GridPane>
 
             <Label text="Descripción:" styleClass="input-label"/>
-            <TextArea fx:id="descripcionField" prefHeight="120.0" promptText="Detalles de la incidencia..." wrapText="true" />
-            
+            <TextArea fx:id="descripcionField" prefHeight="100.0"
+                      promptText="Detalles de la incidencia..." wrapText="true"/>
+
             <HBox spacing="10.0" alignment="CENTER_LEFT">
-                <Button fx:id="adjuntarImagenBtn" mnemonicParsing="false" onAction="#handleAdjuntarImagen" text="Adjuntar Imagen 📎" styleClass="action-button" />
-                <Label fx:id="imagenLabel" text="" textFill="#94a3b8" wrapText="true" HBox.hgrow="ALWAYS" />
+                <Button fx:id="adjuntarImagenBtn" onAction="#handleAdjuntarImagen"
+                        text="Adjuntar Imagen 📎" styleClass="action-button"/>
+                <Label fx:id="imagenLabel" text="" textFill="#94a3b8" wrapText="true" HBox.hgrow="ALWAYS"/>
             </HBox>
-            
-            <Button mnemonicParsing="false" onAction="#handleCrearIncidencia" text="Crear Ticket" styleClass="action-button, primary" maxWidth="Infinity" />
-            <Label fx:id="statusLabel" textFill="RED" wrapText="true" />
+
+            <!-- Botón principal crear ticket -->
+            <Button onAction="#handleCrearIncidencia" text="Crear Ticket"
+                    styleClass="action-button, primary" maxWidth="Infinity"/>
+            <Label fx:id="statusLabel" textFill="RED" wrapText="true"/>
+
+            <!-- ── Sugerencia IA ── -->
+            <javafx.scene.control.Separator/>
+
+            <!-- Botón para pedir sugerencia -->
+            <Button fx:id="btnSugerirIA" onAction="#handleSugerirIA"
+                    text="✨ ¿Quizás lo solucionas tú? Pregunta a la IA"
+                    maxWidth="Infinity"
+                    style="-fx-background-color: #1e3a5f; -fx-text-fill: #93c5fd; -fx-font-size: 12px; -fx-background-radius: 8; -fx-padding: 8;"/>
+
+            <!-- Tarjeta de sugerencia (oculta por defecto) -->
+            <VBox fx:id="panelSugerencia" spacing="8.0" visible="false" managed="false"
+                  style="-fx-background-color: #0f1f35; -fx-background-radius: 10; -fx-border-color: #1e40af; -fx-border-radius: 10; -fx-border-width: 1; -fx-padding: 14;">
+
+                <HBox alignment="CENTER_LEFT" spacing="8">
+                    <Label text="✨" style="-fx-font-size: 14px;"/>
+                    <Label text="¿Quizás lo solucionas tú?" style="-fx-text-fill: #93c5fd; -fx-font-weight: bold; -fx-font-size: 13px;"/>
+                </HBox>
+
+                <Label text="💡 Sugerencia generada:" style="-fx-text-fill: #64748b; -fx-font-size: 11px; -fx-font-style: italic;"/>
+
+                <Label fx:id="lblSugerenciaIA" wrapText="true"
+                       style="-fx-text-fill: #e2e8f0; -fx-font-size: 12px; -fx-line-spacing: 3;"/>
+
+                <!-- Spinner visible mientras carga -->
+                <javafx.scene.control.ProgressIndicator fx:id="aiSpinner" prefWidth="24" prefHeight="24" visible="false" managed="false"
+                                                        style="-fx-accent: #3b82f6;"/>
+            </VBox>
+
         </VBox>
 
-        <!-- Lista de Incidencias -->
+        <!-- Panel Derecha: Lista de Mis Tickets -->
         <VBox spacing="10.0" HBox.hgrow="ALWAYS">
             <Label text="Mis Tickets">
-                <font>
-                    <Font name="System Bold" size="16.0" />
-                </font>
+                <font><Font name="System Bold" size="16.0"/></font>
             </Label>
             <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS">
                 <content>
                     <VBox fx:id="incidenciasContainer" spacing="10.0">
-                        <padding>
-                            <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
-                        </padding>
+                        <padding><Insets bottom="10.0" left="10.0" right="10.0" top="10.0"/></padding>
                     </VBox>
                 </content>
             </ScrollPane>
         </VBox>
+
     </HBox>
 </VBox>

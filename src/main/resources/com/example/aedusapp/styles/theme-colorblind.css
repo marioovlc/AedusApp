@@ -1,0 +1,358 @@
+/* ============================================ */
+/*  Aedus App – Tema Daltónicos                 */
+/*  Accesibilidad Visual (Tritanopia / Deutera) */
+/* ============================================ */
+
+/* ── Base y Tipografía (Alto Contraste) ── */
+.root {
+    -fx-base: #101010;
+    -fx-background-color: #101010;
+    -fx-control-inner-background: #1a1a1a;
+}
+
+.label, .text, .h1, .page-title {
+    -fx-text-fill: #ffffff;
+}
+
+.h2, .page-subtitle {
+    -fx-text-fill: #cccccc;
+}
+
+/* ── Sidebar ── */
+.sidebar {
+    -fx-background-color: #1a1a1a;
+    -fx-border-color: #333333;
+}
+
+.sidebar-button {
+    -fx-text-fill: #aaaaaa;
+}
+
+.sidebar-button.active {
+    -fx-background-color: rgba(96, 165, 250, 0.15);
+    -fx-text-fill: #60a5fa;
+    -fx-border-color: #60a5fa;
+}
+
+.sidebar-user-card {
+    -fx-background-color: #222222;
+    -fx-border-color: #444444;
+}
+
+/* ── Cards & Inputs ── */
+.dashboard-card,
+.stat-card,
+.mantenimiento-card,
+.content-panel,
+.kpi-card,
+.incidencia-card,
+.details-panel,
+.text-field,
+.password-field,
+.combo-box,
+.text-area {
+    -fx-background-color: #1a1a1a;
+    -fx-border-color: #333333;
+    -fx-text-fill: #ffffff;
+}
+
+/* ── Tipografía Stats & Tables ── */
+.stat-value, .kpi-value, .incidencia-titulo, .details-header, .details-value {
+    -fx-text-fill: #ffffff;
+}
+
+.stat-label, .kpi-label, .card-title, .incident-description, .details-description, .input-label {
+    -fx-text-fill: #aaaaaa;
+}
+
+/* ── Tables & ListViews ── */
+.table-view, .data-table, .combo-box-popup .list-view {
+    -fx-background-color: #1a1a1a;
+    -fx-border-color: #333333;
+}
+
+.table-view .column-header-background, .data-table .column-header-background {
+    -fx-background-color: #222222;
+    -fx-border-color: #333333;
+}
+
+.table-view .column-header .label, .data-table .column-header .label {
+    -fx-text-fill: #cccccc;
+}
+
+.table-row-cell, .data-table .table-row-cell, .combo-box-popup .list-cell {
+    -fx-background-color: #1a1a1a;
+    -fx-border-color: #222222;
+    -fx-text-fill: #ffffff;
+}
+
+.table-row-cell:odd, .data-table .table-row-cell:odd {
+    -fx-background-color: #222222;
+}
+
+.table-row-cell:hover, .data-table .table-row-cell:hover, .combo-box-popup .list-cell:hover {
+    -fx-background-color: #333333;
+}
+
+.table-row-cell:selected, .data-table .table-row-cell:selected, .combo-box-popup .list-cell:selected {
+    -fx-background-color: #2563eb;
+    -fx-text-fill: #ffffff;
+}
+
+.table-cell, .data-table .table-cell {
+    -fx-text-fill: #ffffff;
+}
+
+/* ── Tabs (Usuarios) ── */
+.tab-pane .tab-header-background {
+    -fx-background-color: #101010;
+    -fx-border-color: #333333;
+}
+
+.tab-pane .tab {
+    -fx-text-fill: #aaaaaa;
+}
+
+.tab-pane .tab:selected {
+    -fx-border-color: #60a5fa;
+    -fx-text-fill: #60a5fa;
+}
+
+.tab-pane .tab .tab-label {
+    -fx-text-fill: #aaaaaa;
+}
+
+.tab-pane .tab:selected .tab-label {
+    -fx-text-fill: #60a5fa;
+}
+
+/* ── Badges y Estados ── */
+/* Reemplazamos Naranja/Rojo/Verde por colores más contrastados para daltonismo (Azul, Amarillo intenso, Magenta) */
+
+/* Rojo (Danger/No leido) -> Magenta / Naranja Fuerte */
+.estado-badge.no-leido,
+.status-no-leido,
+.badge.p1 {
+    -fx-background-color: rgba(217, 70, 239, 0.15); /* Fuchsia */
+    -fx-text-fill: #f0abfc;
+    -fx-border-color: rgba(217, 70, 239, 0.4);
+}
+
+/* Naranja (Warning/Revision) -> Amarillo Intenso */
+.estado-badge.en-revision,
+.status-en-revision,
+.badge.p2 {
+    -fx-background-color: rgba(234, 179, 8, 0.15); /* Yellow */
+    -fx-text-fill: #fdf08a;
+    -fx-border-color: rgba(234, 179, 8, 0.4);
+}
+
+/* Verde (Success/Acabado) -> Azul Clásico */
+.estado-badge.acabado,
+.status-acabado {
+    -fx-background-color: rgba(59, 130, 246, 0.15); /* Blue */
+    -fx-text-fill: #93c5fd;
+    -fx-border-color: rgba(59, 130, 246, 0.4);
+}
+
+/* Botones de acción */
+.status-acabado-btn,
+.action-button.success,
+.button.success {
+    -fx-background-color: #2563eb; /* Azul sólido en vez de verde */
+}
+
+.status-acabado-btn:hover,
+.action-button.success:hover,
+.button.success:hover {
+    -fx-background-color: #1d4ed8;
+}
+
+.status-revision-btn {
+    -fx-background-color: #ca8a04; /* Amarillo oscuro en vez de naranja */
+}
+.status-revision-btn:hover {
+    -fx-background-color: #a16207;
+}
+
+.danger-button,
+.action-button.danger,
+.button.danger {
+    -fx-background-color: #d946ef; /* Fuchsia en vez de rojo */
+}
+.danger-button:hover,
+.action-button.danger:hover,
+.button.danger:hover {
+    -fx-background-color: #c026d3;
+}
+
+/* Iconos KPI (Métricas para Daltónicos) */
+.icon-orange {
+    -fx-fill: #facc15;
+    -fx-icon-color: #facc15;
+}
+
+.icon-green {
+    -fx-fill: #60a5fa;
+    -fx-icon-color: #60a5fa;
+}
+
+/* Punto de status */
+.status-dot.online {
+    -fx-background-color: #60a5fa;
+    -fx-effect: dropshadow(gaussian, rgba(96, 165, 250, 0.6), 8, 0, 0, 0);
+}
+
+/* ── Filas Listas Administrador (Colorblind) ── */
+.user-list-row {
+    -fx-background-color: #1a1a1a;
+    -fx-border-width: 0 0 1 4;
+    -fx-border-color: transparent transparent #222222 transparent;
+    -fx-cursor: hand;
+}
+.user-list-row:hover {
+    -fx-background-color: #2a2a2a;
+}
+.user-list-row.selected {
+    -fx-background-color: #333333;
+}
+.user-list-name {
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+}
+.user-list-email {
+    -fx-text-fill: #aaaaaa;
+    -fx-font-size: 11px;
+}
+
+/* Bordes laterales de rol (Colorblind) */
+.user-list-row.row-role-admin {
+    -fx-border-color: transparent transparent #222222 #f0abfc;
+}
+.user-list-row.row-role-mantenimiento {
+    -fx-border-color: transparent transparent #222222 #fdf08a;
+}
+.user-list-row.row-role-user {
+    -fx-border-color: transparent transparent #222222 #93c5fd;
+}
+.user-list-row.row-role-pending {
+    -fx-border-color: transparent transparent #222222 #fdf08a;
+}
+.user-list-row.row-role-default {
+    -fx-border-color: transparent transparent #222222 #94a3b8;
+}
+
+/* ── Popups / Alerts – Tema Daltónico ── */
+.dialog-pane {
+    -fx-background-color: #0d1629;
+    -fx-border-color: #fdf08a;
+    -fx-border-width: 2;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.6), 30, 0, 0, 0);
+}
+.dialog-pane>.content {
+    -fx-background-color: #0d1629;
+}
+.dialog-pane>.content.label {
+    -fx-text-fill: #f1f5f9;
+    -fx-font-size: 14px;
+}
+.dialog-pane>.header-panel {
+    -fx-background-color: #111f36;
+    -fx-border-color: #fdf08a;
+    -fx-border-width: 0 0 2 0;
+}
+.dialog-pane>.header-panel>.label {
+    -fx-text-fill: #fdf08a;
+    -fx-font-weight: bold;
+    -fx-font-size: 15px;
+}
+.dialog-pane .button-bar {
+    -fx-background-color: #0a1525;
+    -fx-border-color: #fdf08a;
+    -fx-border-width: 2 0 0 0;
+}
+.dialog-pane .button-bar .button {
+    -fx-background-color: #1c2d47;
+    -fx-text-fill: #f1f5f9;
+    -fx-background-radius: 8;
+    -fx-font-weight: bold;
+    -fx-padding: 8 20;
+    -fx-cursor: hand;
+    -fx-font-size: 13px;
+}
+.dialog-pane .button-bar .button:hover {
+    -fx-background-color: #243a5e;
+}
+.dialog-pane .button-bar .button:default {
+    -fx-background-color: #fdf08a;
+    -fx-text-fill: #0d1629;
+}
+.dialog-pane .button-bar .button:default:hover {
+    -fx-background-color: #fef08a;
+    -fx-text-fill: #060d1c;
+}
+.dialog-pane .button-bar .button:cancel {
+    -fx-background-color: #f0abfc;
+    -fx-text-fill: #0d1629;
+}
+.dialog-pane .button-bar .button:cancel:hover {
+    -fx-background-color: #e879f9;
+}
+
+/* ── Tarjetas Incidencias – Tema Daltónico ── */
+.incidencia-card {
+    -fx-background-color: #111f36;
+    -fx-background-radius: 14;
+    -fx-padding: 20 22 20 20;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 12, 0, 0, 2);
+}
+.incidencia-card:hover {
+    -fx-background-color: #152236;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.7), 20, 0, 0, 8);
+    -fx-translate-y: -3;
+}
+.incidencia-titulo {
+    -fx-text-fill: #fdf08a;
+}
+.incidencia-descripcion {
+    -fx-text-fill: #f1f5f9;
+}
+.stepper-circle-inactive {
+    -fx-background-color: #1c2d47;
+    -fx-background-radius: 11;
+    -fx-border-color: #fdf08a;
+    -fx-border-radius: 11;
+    -fx-border-width: 1;
+}
+.stepper-line-inactive {
+    -fx-background-color: #1c2d47;
+}
+.stepper-label-inactive {
+    -fx-text-fill: #4f5b69;
+}
+.stepper-label-done {
+    -fx-text-fill: #93c5fd;
+}
+.resolucion-box {
+    -fx-background-color: rgba(253,240,138,0.08);
+    -fx-padding: 10;
+    -fx-background-radius: 6;
+    -fx-border-color: #fdf08a;
+    -fx-border-width: 0 0 0 2;
+}
+.resolucion-titulo {
+    -fx-font-weight: bold;
+    -fx-text-fill: #fdf08a;
+    -fx-font-size: 11px;
+}
+.resolucion-cuerpo {
+    -fx-text-fill: #f1f5f9;
+    -fx-font-size: 12px;
+}
+.load-more-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: #fdf08a;
+    -fx-cursor: hand;
+    -fx-underline: true;
+}

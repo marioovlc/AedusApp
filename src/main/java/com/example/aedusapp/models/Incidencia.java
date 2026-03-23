@@ -6,7 +6,7 @@ public class Incidencia {
     private String titulo;
     private String descripcion;
     private String estado;
-    private int usuarioId;
+    private String usuarioId;
     private int aulaId;
     private int categoriaId;
     private java.sql.Timestamp fechaCreacion;
@@ -14,11 +14,13 @@ public class Incidencia {
     private String categoriaNombre; // Nombre de la categoría (para mostrar)
     private String aulaNombre; // Nombre del aula (para mostrar)
     private String aulaTipo; // Tipo de aula (Informática, Matemáticas, etc.)
+    private String resolucion;
+    private String creadorNombre; // Nombre del usuario creador (para admin)
 
     public Incidencia() {
     }
 
-    public Incidencia(int id, String titulo, String descripcion, String estado, int usuarioId, int aulaId,
+    public Incidencia(int id, String titulo, String descripcion, String estado, String usuarioId, int aulaId,
             int categoriaId, java.sql.Timestamp fechaCreacion) {
         this.id = id;
         this.titulo = titulo;
@@ -32,10 +34,26 @@ public class Incidencia {
 
     // Constructor de compatibilidad
     public Incidencia(int id, String titulo, String descripcion, String estado) {
-        this(id, titulo, descripcion, estado, 0, 0, 0, null);
+        this(id, titulo, descripcion, estado, null, 0, 0, null);
     }
 
     // Getters y setters
+    public String getResolucion() {
+        return resolucion;
+    }
+
+    public void setResolucion(String resolucion) {
+        this.resolucion = resolucion;
+    }
+
+    public String getCreadorNombre() {
+        return creadorNombre;
+    }
+
+    public void setCreadorNombre(String creadorNombre) {
+        this.creadorNombre = creadorNombre;
+    }
+
     public int getId() {
         return id;
     }
@@ -68,11 +86,11 @@ public class Incidencia {
         this.estado = estado;
     }
 
-    public int getUsuarioId() {
+    public String getUsuarioId() {
         return usuarioId;
     }
 
-    public void setUsuarioId(int usuarioId) {
+    public void setUsuarioId(String usuarioId) {
         this.usuarioId = usuarioId;
     }
 
@@ -100,15 +118,16 @@ public class Incidencia {
         this.fechaCreacion = fechaCreacion;
     }
 
-    // Nuevo campo para mostrar quién creó la incidencia
-    private String creadorNombre;
 
-    public String getCreadorNombre() {
-        return creadorNombre;
+    // Técnico asignado a resolver la incidencia
+    private String asignadoNombre;
+
+    public String getAsignadoNombre() {
+        return asignadoNombre;
     }
 
-    public void setCreadorNombre(String creadorNombre) {
-        this.creadorNombre = creadorNombre;
+    public void setAsignadoNombre(String asignadoNombre) {
+        this.asignadoNombre = asignadoNombre;
     }
 
     public String getImagenRuta() {

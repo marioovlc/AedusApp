@@ -5,7 +5,7 @@ import java.sql.Timestamp;
 // Modelo que representa un registro de log del sistema
 public class Log {
     private int id;
-    private int usuarioId;
+    private String usuarioId;
     private String usuarioNombre; // Para mostrar en la UI
     private String accion;
     private String categoria;
@@ -17,14 +17,14 @@ public class Log {
     public Log() {
     }
 
-    public Log(int usuarioId, String accion, String categoria, String descripcion) {
+    public Log(String usuarioId, String accion, String categoria, String descripcion) {
         this.usuarioId = usuarioId;
         this.accion = accion;
         this.categoria = categoria;
         this.descripcion = descripcion;
     }
 
-    public Log(int usuarioId, String accion, String categoria, String descripcion, String ipAddress) {
+    public Log(String usuarioId, String accion, String categoria, String descripcion, String ipAddress) {
         this.usuarioId = usuarioId;
         this.accion = accion;
         this.categoria = categoria;
@@ -41,11 +41,11 @@ public class Log {
         this.id = id;
     }
 
-    public int getUsuarioId() {
+    public String getUsuarioId() {
         return usuarioId;
     }
 
-    public void setUsuarioId(int usuarioId) {
+    public void setUsuarioId(String usuarioId) {
         this.usuarioId = usuarioId;
     }
 

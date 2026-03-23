@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.*?>
+
+<VBox spacing="20.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.example.aedusapp.controllers.usuarios.TiendaAdminController">
+    <padding><Insets bottom="30.0" left="40.0" right="40.0" top="30.0"/></padding>
+
+    <!-- Header -->
+    <VBox spacing="5.0">
+        <HBox alignment="CENTER_LEFT" spacing="10">
+            <Label text="📦" style="-fx-font-size: 24px;"/>
+            <VBox spacing="2">
+                <Label styleClass="page-title" text="Gestión del Catálogo"/>
+                <Label styleClass="page-subtitle" text="Administra los productos disponibles en la tienda de AeduCoins"/>
+            </VBox>
+        </HBox>
+        <Region prefHeight="10.0"/>
+    </VBox>
+
+    <HBox spacing="25.0" VBox.vgrow="ALWAYS">
+        <!-- Panel Izquierda: Catálogo Actual -->
+        <VBox spacing="15.0" HBox.hgrow="ALWAYS" styleClass="dashboard-card">
+            <padding><Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/></padding>
+            <HBox alignment="CENTER_LEFT" spacing="10">
+                <Label text="📋" style="-fx-font-size: 16px;"/>
+                <Label text="Productos en Venta" style="-fx-font-weight: bold; -fx-text-fill: white; -fx-font-size: 16px;"/>
+            </HBox>
+            
+            <ScrollPane fitToWidth="true" styleClass="scroll-pane" vbarPolicy="AS_NEEDED" VBox.vgrow="ALWAYS">
+                <VBox fx:id="listaAdminTienda" spacing="10.0"/>
+            </ScrollPane>
+        </VBox>
+
+        <!-- Panel Derecha: Configuración -->
+        <VBox spacing="18.0" minWidth="360.0" styleClass="dashboard-card">
+            <padding><Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/></padding>
+
+            <!-- Añadir Producto -->
+            <HBox alignment="CENTER_LEFT" spacing="8">
+                <Label text="➕" style="-fx-font-size: 14px;"/>
+                <Label text="Añadir Nuevo Producto" style="-fx-font-weight: bold; -fx-text-fill: #fcd34d; -fx-font-size: 15px;"/>
+            </HBox>
+            
+            <VBox spacing="6.0">
+                <Label text="Icono (emoji)" styleClass="input-label"/>
+                <TextField fx:id="txtAdminTiendaIcono" promptText="Ej: 🎨  🏆  🎁  📦"/>
+            </VBox>
+
+            <VBox spacing="6.0">
+                <Label text="Nombre del Producto" styleClass="input-label"/>
+                <TextField fx:id="txtAdminTiendaNombre" promptText="Ej: Tema Sakura Premium"/>
+            </VBox>
+            
+            <VBox spacing="6.0">
+                <Label text="Coste (AeduCoins)" styleClass="input-label"/>
+                <TextField fx:id="txtAdminTiendaCoste" promptText="Solo números (Ej: 150)"/>
+            </VBox>
+            
+            <VBox spacing="6.0">
+                <Label text="Descripción Corta" styleClass="input-label"/>
+                <TextField fx:id="txtAdminTiendaDesc" promptText="¿Qué obtiene el usuario?"/>
+            </VBox>
+
+            <Button text="✔️ Publicar en Tienda" onAction="#handleAdminTiendaCrear" 
+                    maxWidth="Infinity" prefHeight="42.0" styleClass="action-button,success"
+                    style="-fx-font-size: 13px; -fx-font-weight: bold;"/>
+
+            <!-- Recompensas -->
+            <Region prefHeight="5.0"/>
+            <HBox alignment="CENTER_LEFT" spacing="8">
+                <Label text="⭐" style="-fx-font-size: 14px;"/>
+                <Label text="Recompensa por Ticket" style="-fx-font-weight: bold; -fx-text-fill: #fbbf24; -fx-font-size: 14px;"/>
+            </HBox>
+            <Label text="AeduCoins que recibe un usuario al crear un ticket:" 
+                   style="-fx-text-fill: #64748b; -fx-font-size: 11px;" wrapText="true"/>
+
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <TextField fx:id="txtRecompensaTicket" promptText="10" maxWidth="80" text="10"/>
+                <Label text="AC por ticket creado" style="-fx-text-fill: #94a3b8; -fx-font-size: 12px;"/>
+            </HBox>
+            <Button text="💾 Guardar Recompensa" onAction="#handleGuardarRecompensa"
+                    maxWidth="Infinity" prefHeight="38.0" style="-fx-background-color: #0f766e; -fx-text-fill: white; -fx-font-weight: bold;"/>
+
+            <Region VBox.vgrow="ALWAYS"/>
+            <Label text="* Los cambios se aplican al instante para todos los usuarios." 
+                   style="-fx-text-fill: #4a5568; -fx-font-size: 11px;" wrapText="true"/>
+        </VBox>
+    </HBox>
+</VBox>

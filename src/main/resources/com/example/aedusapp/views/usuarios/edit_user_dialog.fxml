@@ -2,16 +2,32 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
-<?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.PasswordField?>
 <?import javafx.scene.control.TextField?>
+<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.Circle?>
 
 <VBox spacing="15.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.aedusapp.controllers.usuarios.EditUserController" styleClass="content-panel">
     
     <Label text="Editar Usuario" styleClass="page-title" style="-fx-font-size: 20px;" />
+
+    <!-- Avatar Preview -->
+    <HBox alignment="CENTER" spacing="15">
+        <StackPane fx:id="avatarContainer" prefWidth="70" prefHeight="70" alignment="CENTER" style="-fx-background-color: #475569; -fx-background-radius: 35; -fx-cursor: hand;">
+            <Circle fx:id="avatarCircle" radius="35" style="-fx-fill: #475569;"/>
+            <ImageView fx:id="imgAvatar" fitWidth="70" fitHeight="70" preserveRatio="true" />
+            <Label fx:id="lblAvatarInitials" text="?" style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 24px;"/>
+        </StackPane>
+        <VBox spacing="5" alignment="CENTER_LEFT">
+            <Label text="Foto de Perfil" styleClass="input-label"/>
+            <Button text="Subir Foto..." onAction="#handleSeleccionarFoto" styleClass="action-button"/>
+            <Label fx:id="lblFotoRuta" text="Sin foto seleccionada" style="-fx-text-fill: #94a3b8; -fx-font-size: 11px;"/>
+        </VBox>
+    </HBox>
     
     <VBox spacing="5.0">
         <Label text="Nombre" styleClass="input-label"/>

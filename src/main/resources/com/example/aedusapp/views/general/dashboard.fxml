@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.chart.BarChart?>
+<?import javafx.scene.chart.CategoryAxis?>
+<?import javafx.scene.chart.LineChart?>
+<?import javafx.scene.chart.NumberAxis?>
+<?import javafx.scene.chart.PieChart?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.VBox?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+
+<ScrollPane fitToWidth="true" style="-fx-background-color: transparent;" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.aedusapp.controllers.general.DashboardController">
+    <content>
+        <VBox spacing="20.0" styleClass="content-area">
+            <padding>
+                <Insets bottom="30.0" left="30.0" right="30.0" top="30.0" />
+            </padding>
+
+            <!-- Header -->
+            <VBox spacing="5.0">
+                <Label styleClass="page-title" text="Dashboard General" />
+                <Label styleClass="page-subtitle" text="Vista general del estado del sistema" />
+            </VBox>
+
+            <!-- KPI Cards Row -->
+            <HBox spacing="15.0">
+                <!-- KPI 1: Total Incidencias -->
+                <VBox styleClass="kpi-card" HBox.hgrow="ALWAYS">
+                    <HBox alignment="CENTER_LEFT" spacing="10">
+                        <FontIcon iconLiteral="fas-clipboard-list" iconSize="24" styleClass="kpi-icon, icon-blue"/>
+                        <Label text="Total Incidencias" styleClass="kpi-label"/>
+                    </HBox>
+                    <Label fx:id="lblTotalIncidencias" text="0" styleClass="kpi-value"/>
+                    <Label text="Registradas en el sistema" styleClass="kpi-subtext"/>
+                </VBox>
+
+                <!-- KPI 2: Pendientes -->
+                <VBox styleClass="kpi-card" HBox.hgrow="ALWAYS">
+                    <HBox alignment="CENTER_LEFT" spacing="10">
+                         <FontIcon iconLiteral="fas-clock" iconSize="24" styleClass="kpi-icon, icon-orange"/>
+                        <Label text="Pendientes" styleClass="kpi-label"/>
+                    </HBox>
+                    <Label fx:id="lblIncidenciasPendientes" text="0" styleClass="kpi-value"/>
+                    <Label text="Requieren atención" styleClass="kpi-subtext"/>
+                </VBox>
+
+                <!-- KPI 3: Resueltas -->
+                <VBox styleClass="kpi-card" HBox.hgrow="ALWAYS">
+                    <HBox alignment="CENTER_LEFT" spacing="10">
+                        <FontIcon iconLiteral="fas-check-circle" iconSize="24" styleClass="kpi-icon, icon-green"/>
+                        <Label text="Resueltas" styleClass="kpi-label"/>
+                    </HBox>
+                    <Label fx:id="lblIncidenciasResueltas" text="0" styleClass="kpi-value"/>
+                    <Label text="Cerradas con éxito" styleClass="kpi-subtext"/>
+                </VBox>
+                 <!-- KPI 4: Usuarios -->
+                <VBox styleClass="kpi-card" HBox.hgrow="ALWAYS">
+                    <HBox alignment="CENTER_LEFT" spacing="10">
+                        <FontIcon iconLiteral="fas-users" iconSize="24" styleClass="kpi-icon, icon-purple"/>
+                        <Label text="Usuarios" styleClass="kpi-label"/>
+                    </HBox>
+                    <Label fx:id="lblTotalUsuarios" text="0" styleClass="kpi-value"/>
+                    <Label text="Activos en plataforma" styleClass="kpi-subtext"/>
+                </VBox>
+            </HBox>
+
+            <!-- Charts Grid -->
+            <GridPane hgap="20.0" vgap="20.0">
+                <columnConstraints>
+                    <ColumnConstraints hgrow="ALWAYS" percentWidth="60.0" />
+                    <ColumnConstraints hgrow="ALWAYS" percentWidth="40.0" />
+                </columnConstraints>
+                <rowConstraints>
+                    <RowConstraints vgrow="ALWAYS" />
+                    <RowConstraints vgrow="ALWAYS" />
+                    <RowConstraints vgrow="ALWAYS" />
+                </rowConstraints>
+
+                <!-- Row 1: Line Chart (Trends) & Pie Chart (Status) -->
+                <VBox styleClass="dashboard-card" GridPane.columnIndex="0" GridPane.rowIndex="0">
+                     <Label text="Evolución de Incidencias (Últimos 7 días)" styleClass="card-title"/>
+                    <LineChart fx:id="lineChartTendencia" legendVisible="false" VBox.vgrow="ALWAYS">
+                        <xAxis>
+                            <CategoryAxis label="Fecha" />
+                        </xAxis>
+                        <yAxis>
+                            <NumberAxis label="Incidencias" />
+                        </yAxis>
+                    </LineChart>
+                </VBox>
+
+                <!-- Row 1, Col 1: Bar Chart (Categorías) -->
+                <VBox styleClass="dashboard-card" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                     <Label text="Incidencias por Categoría" styleClass="card-title"/>
+                    <BarChart fx:id="barChartCategorias" legendVisible="false" VBox.vgrow="ALWAYS">
+                        <xAxis>
+                            <CategoryAxis label="Categoría" />
+                        </xAxis>
+                        <yAxis>
+                            <NumberAxis label="Cantidad" />
+                        </yAxis>
+                    </BarChart>
+                </VBox>
+
+                 <!-- Row 2, Col 0: Achievements -->
+                 <VBox styleClass="dashboard-card" GridPane.columnIndex="0" GridPane.rowIndex="1" spacing="15">
+                     <HBox alignment="CENTER_LEFT" spacing="10">
+                         <FontIcon iconLiteral="fas-award" iconSize="24" styleClass="icon-orange"/>
+                         <Label text="Mis Logros Recientes" styleClass="card-title"/>
+                     </HBox>
+                     <VBox fx:id="achievementsContainer" spacing="10" VBox.vgrow="ALWAYS">
+                         <Label text="Cargando tus logros..." styleClass="kpi-subtext"/>
+                     </VBox>
+                 </VBox>
+
+                 <!-- Row 2, Col 1: AI Assistant -->
+                  <VBox styleClass="dashboard-card, ai-assistant-card" GridPane.columnIndex="1" GridPane.rowIndex="1" spacing="15">
+                      <HBox alignment="CENTER_LEFT" spacing="10">
+                          <FontIcon iconLiteral="fas-robot" iconSize="24" styleClass="icon-purple"/>
+                          <Label text="Asistente AI" styleClass="card-title"/>
+                      </HBox>
+                      <VBox spacing="10" style="-fx-background-color: rgba(30, 41, 59, 0.5); -fx-background-radius: 10; -fx-padding: 15;" VBox.vgrow="ALWAYS">
+                         <Label fx:id="lblResumenTexto" text="Analizando estado del sistema..." wrapText="true" style="-fx-text-fill: #e2e8f0; -fx-font-size: 13px; -fx-font-style: italic;" VBox.vgrow="ALWAYS" alignment="TOP_LEFT"/>
+                      </VBox>
+                 </VBox>
+
+                 <!-- Row 3: Daily Missions -->
+                 <VBox styleClass="dashboard-card" GridPane.columnIndex="0" GridPane.rowIndex="2" GridPane.columnSpan="2" spacing="15">
+                     <HBox alignment="CENTER_LEFT" spacing="10">
+                         <FontIcon iconLiteral="fas-gift" iconSize="24" styleClass="icon-green"/>
+                         <Label text="Mis Misiones Diarias" styleClass="card-title"/>
+                     </HBox>
+                     <VBox fx:id="missionsContainer" spacing="10" VBox.vgrow="ALWAYS">
+                         <Label text="Cargando misiones..." styleClass="kpi-subtext"/>
+                     </VBox>
+                 </VBox>
+
+            </GridPane>
+        </VBox>
+    </content>
+</ScrollPane>

@@ -1,38 +1,31 @@
 package com.example.aedusapp.controllers.incidencias;
 
-import com.example.aedusapp.database.IncidenciaDAO;
+import com.example.aedusapp.database.daos.IncidenciaDAO;
+import com.example.aedusapp.database.daos.UsuarioDAO;
 import com.example.aedusapp.models.Incidencia;
 import com.example.aedusapp.models.Usuario;
-import com.example.aedusapp.services.LogService;
-import javafx.beans.property.SimpleStringProperty;
+import com.example.aedusapp.services.ai.AIService;
+import com.example.aedusapp.services.logging.LogService;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
 import javafx.scene.text.Text;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
-// Controlador para la vista de Monitorización de Tickets
 public class MonitorizacionController {
 
+    // ── FXML ──────────────────────────────────────────────────────────
     @FXML
-    private TableView<Incidencia> tablaIncidencias;
-    @FXML
-    private TableColumn<Incidencia, String> colId;
-    @FXML
-    private TableColumn<Incidencia, String> colTitulo;
-    @FXML
-    private TableColumn<Incidencia, String> colEstado;
-    @FXML
-    private TableColumn<Incidencia, String> colCreador;
-    @FXML
-    private TableColumn<Incidencia, String> colFecha;
+    private VBox listaIncidencias; // reemplaza a tablaIncidencias
 
     @FXML
     private VBox panelDetalles;
@@ -43,80 +36,84 @@ public class MonitorizacionController {
     @FXML
     private ImageView imgDetalles;
     @FXML
+    private VBox vboxImagen;
+    @FXML
     private Button btnMarcarLeido;
     @FXML
     private Button btnMarcarEnRevision;
     @FXML
     private Button btnMarcarAcabado;
     @FXML
+    private Button btnExportarCSV;
+    @FXML
     private Button btnEliminar;
+    @FXML
+    private Button btnEliminarTodo;
 
-    private IncidenciaDAO incidenciaDAO;
+    @FXML
+    private Label lblAsignado;
+    @FXML
+    private Button btnAsignar;
+
+    @FXML
+    private VBox aiCard;
+    @FXML
+    private Label lblAiStatus;
+    @FXML
+    private TextArea txtAiResponse;
+    @FXML
+    private Button btnGuardarFAQ;
+
+    // chips
+    @FXML
+    private Button chipTodos;
+    @FXML
+    private Button chipNoLeido;
+    @FXML
+    private Button chipLeido;
+    @FXML
+    private Button chipRevision;
+    @FXML
+    private Button chipAcabado;
+    @FXML
+    private TextField txtBuscarMonitor;
+
+    // ── Estado ────────────────────────────────────────────────────────
+    private final IncidenciaDAO incidenciaDAO = new IncidenciaDAO();
+    private final UsuarioDAO usuarioDAO = new UsuarioDAO();
+    private final AIService aiService = new AIService();
+    private final com.example.aedusapp.database.daos.ConocimientoDAO conocimientoDAO = new com.example.aedusapp.database.daos.ConocimientoDAO();
+    private final com.example.aedusapp.database.daos.MisionesDAO misionesDAO = new com.example.aedusapp.database.daos.MisionesDAO();
     private Usuario usuarioActual;
     private Incidencia incidenciaSeleccionada;
+    private List<Incidencia> todasIncidencias = new java.util.ArrayList<>();
+    private String filtroEstado = "Todos";
 
     @FXML
     public void initialize() {
-        incidenciaDAO = new IncidenciaDAO();
-
-        // Configurar columnas de la tabla
-        colId.setCellValueFactory(data -> new SimpleStringProperty(String.valueOf(data.getValue().getId())));
-        colTitulo.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getTitulo()));
-        colEstado.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getEstado()));
-        colCreador.setCellValueFactory(data -> new SimpleStringProperty(
-                data.getValue().getCreadorNombre() != null ? data.getValue().getCreadorNombre() : "Desconocido"));
-        colFecha.setCellValueFactory(data -> {
-            if (data.getValue().getFechaCreacion() != null) {
-                SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm");
-                return new SimpleStringProperty(sdf.format(data.getValue().getFechaCreacion()));
-            }
-            return new SimpleStringProperty("");
-        });
-
-        // Aplicar estilo personalizado a la columna de estado
-        colEstado.setCellFactory(column -> new TableCell<Incidencia, String>() {
-            @Override
-            protected void updateItem(String estado, boolean empty) {
-                super.updateItem(estado, empty);
-                if (empty || estado == null) {
-                    setText(null);
-                    setGraphic(null);
-                    setStyle("");
-                } else {
-                    Label badge = new Label(estado);
-                    badge.getStyleClass().add("status-badge");
-
-                    // Aplicar clase CSS según el estado
-                    switch (estado.toUpperCase()) {
-                        case "NO LEIDO" -> badge.getStyleClass().add("status-no-leido");
-                        case "LEIDO" -> badge.getStyleClass().add("status-leido");
-                        case "EN REVISION" -> badge.getStyleClass().add("status-en-revision");
-                        case "ACABADO" -> badge.getStyleClass().add("status-acabado");
-                    }
-
-                    setGraphic(badge);
-                    setText(null);
-                    setAlignment(Pos.CENTER);
-                }
-            }
-        });
-
-        // Listener para cuando se selecciona una fila
-        tablaIncidencias.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
-            if (newSelection != null) {
-                mostrarDetalles(newSelection);
-            }
-        });
-
-        // Configurar botones de acción
         btnMarcarLeido.setOnAction(e -> cambiarEstado("LEIDO"));
         btnMarcarEnRevision.setOnAction(e -> cambiarEstado("EN REVISION"));
         btnMarcarAcabado.setOnAction(e -> cambiarEstado("ACABADO"));
+        btnExportarCSV.setOnAction(e -> exportarACSV());
         btnEliminar.setOnAction(e -> eliminarTicket());
+        btnEliminarTodo.setOnAction(e -> eliminarTodo());
+        if (btnGuardarFAQ != null) {
+            btnGuardarFAQ.setOnAction(e -> guardarEnFAQ());
+        }
 
-        // Ocultar panel de detalles inicialmente
         panelDetalles.setVisible(false);
         panelDetalles.setManaged(false);
+    }
+
+    private void guardarEnFAQ() {
+        if (incidenciaSeleccionada == null || txtAiResponse.getText().isEmpty()) return;
+        boolean exitoso = conocimientoDAO.insertArticulo(incidenciaSeleccionada.getTitulo(), txtAiResponse.getText());
+        if (exitoso) {
+            com.example.aedusapp.controllers.general.MainController.showGlobalLoading(true, "Guardado en la Base de Conocimientos");
+            new Thread(() -> { try { Thread.sleep(1500); } catch(Exception ignored){} javafx.application.Platform.runLater(()->com.example.aedusapp.controllers.general.MainController.showGlobalLoading(false,""));}).start();
+        } else {
+            lblAiStatus.setText("Error al guardar en el FAQ.");
+        }
     }
 
     public void setUsuarioActual(Usuario usuario) {
@@ -124,94 +121,370 @@ public class MonitorizacionController {
         cargarIncidencias();
     }
 
+    // ── Chip handlers ──────────────────────────────────────────────────
+    @FXML
+    private void onChipTodos() {
+        activarChip("Todos");
+        aplicarFiltros();
+    }
+
+    @FXML
+    private void onChipNoLeido() {
+        activarChip("NO LEIDO");
+        aplicarFiltros();
+    }
+
+    @FXML
+    private void onChipLeido() {
+        activarChip("LEIDO");
+        aplicarFiltros();
+    }
+
+    @FXML
+    private void onChipRevision() {
+        activarChip("EN REVISION");
+        aplicarFiltros();
+    }
+
+    @FXML
+    private void onChipAcabado() {
+        activarChip("ACABADO");
+        aplicarFiltros();
+    }
+
+    private void activarChip(String estado) {
+        filtroEstado = estado;
+        Button[] chips = { chipTodos, chipNoLeido, chipLeido, chipRevision, chipAcabado };
+        String[] estados = { "Todos", "NO LEIDO", "LEIDO", "EN REVISION", "ACABADO" };
+        for (int i = 0; i < chips.length; i++) {
+            if (chips[i] == null)
+                continue;
+            chips[i].getStyleClass().remove("chip-active");
+            if (estados[i].equals(estado))
+                chips[i].getStyleClass().add("chip-active");
+        }
+    }
+
+    @FXML
+    public void aplicarFiltros() {
+        String busqueda = txtBuscarMonitor != null ? txtBuscarMonitor.getText().toLowerCase() : "";
+        List<Incidencia> filtradas = todasIncidencias.stream()
+                .filter(i -> "Todos".equals(filtroEstado) || filtroEstado.equalsIgnoreCase(i.getEstado()))
+                .filter(i -> busqueda.isBlank()
+                        || (i.getTitulo() != null && i.getTitulo().toLowerCase().contains(busqueda))
+                        || (i.getCreadorNombre() != null && i.getCreadorNombre().toLowerCase().contains(busqueda)))
+                .collect(Collectors.toList());
+        construirListaCards(filtradas);
+    }
+
+    private void exportarACSV() {
+        if (todasIncidencias == null || todasIncidencias.isEmpty()) {
+            com.example.aedusapp.controllers.general.MainController.showGlobalLoading(true, "No hay incidencias para exportar.");
+            new Thread(() -> { try { Thread.sleep(2000); } catch(Exception ignored){} javafx.application.Platform.runLater(()->com.example.aedusapp.controllers.general.MainController.showGlobalLoading(false,""));}).start();
+            return;
+        }
+        
+        javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
+        fileChooser.setTitle("Guardar Reporte CSV");
+        fileChooser.setInitialFileName("reporte_incidencias.csv");
+        fileChooser.getExtensionFilters().add(new javafx.stage.FileChooser.ExtensionFilter("Archivos CSV", "*.csv"));
+        
+        File file = fileChooser.showSaveDialog(btnExportarCSV.getScene().getWindow());
+        if (file != null) {
+            try (java.io.FileWriter fw = new java.io.FileWriter(file);
+                 java.io.BufferedWriter bw = new java.io.BufferedWriter(fw)) {
+                 
+                bw.write("ID,Titulo,Descripcion,Estado,Categoria,Creador ID,Fecha de Creacion\n");
+                for (Incidencia i : todasIncidencias) {
+                    String titulo = (i.getTitulo() != null) ? i.getTitulo().replace(",", ";").replace("\n", " ").replace("\r", "") : "";
+                    String desc = (i.getDescripcion() != null) ? i.getDescripcion().replace(",", ";").replace("\n", " ").replace("\r", "") : "";
+                    String estado = (i.getEstado() != null) ? i.getEstado() : "";
+                    
+                    bw.write(String.format("%d,%s,%s,%s,%d,%s,%s\n", 
+                        i.getId(), titulo, desc, estado, i.getCategoriaId(), 
+                        i.getUsuarioId() != null ? i.getUsuarioId() : "", 
+                        i.getFechaCreacion() != null ? i.getFechaCreacion().toString() : ""));
+                }
+                
+                com.example.aedusapp.controllers.general.MainController.showGlobalLoading(true, "Exportado con éxito!");
+                new Thread(() -> { try { Thread.sleep(2000); } catch(Exception ignored){} javafx.application.Platform.runLater(()->com.example.aedusapp.controllers.general.MainController.showGlobalLoading(false,""));}).start();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
+
+    // ── Carga ─────────────────────────────────────────────────────────
     private void cargarIncidencias() {
-        tablaIncidencias.setPlaceholder(new Label("Cargando datos..."));
-        tablaIncidencias.getItems().clear();
+        listaIncidencias.getChildren().clear();
+        Label loading = new Label("⏳ Cargando incidencias...");
+        loading.setStyle("-fx-text-fill: #64748b; -fx-font-size: 14px; -fx-padding: 20;");
+        listaIncidencias.getChildren().add(loading);
 
         javafx.concurrent.Task<List<Incidencia>> task = new javafx.concurrent.Task<>() {
             @Override
-            protected List<Incidencia> call() throws Exception {
-                return incidenciaDAO.obtenerTodasIncidencias();
+            protected List<Incidencia> call() {
+                return incidenciaDAO.getAllTickets();
             }
         };
-
         task.setOnSucceeded(e -> {
-            tablaIncidencias.getItems().setAll(task.getValue());
-            if (task.getValue().isEmpty()) {
-                tablaIncidencias.setPlaceholder(new Label("No hay incidencias registradas."));
-            }
+            todasIncidencias = task.getValue();
+            aplicarFiltros();
         });
-
         task.setOnFailed(e -> {
-            tablaIncidencias.setPlaceholder(new Label("Error al cargar datos."));
-            task.getException().printStackTrace();
+            listaIncidencias.getChildren().clear();
+            Label err = new Label("⚠ Error al cargar las incidencias.");
+            err.setStyle("-fx-text-fill: #f87171; -fx-font-size: 14px; -fx-padding: 20;");
+            listaIncidencias.getChildren().add(err);
         });
-
         new Thread(task).start();
     }
 
+    // ── Construcción de cards ─────────────────────────────────────────
+    private void construirListaCards(List<Incidencia> lista) {
+        listaIncidencias.getChildren().clear();
+
+        if (lista.isEmpty()) {
+            VBox empty = new VBox(8);
+            empty.setAlignment(Pos.CENTER);
+            empty.setPadding(new Insets(60));
+            Label icon = new Label("📋");
+            icon.setStyle("-fx-font-size: 48px; -fx-opacity: 0.3;");
+            Label msg = new Label("Sin incidencias que coincidan");
+            msg.setStyle("-fx-font-size: 16px; -fx-text-fill: #475569;");
+            empty.getChildren().addAll(icon, msg);
+            listaIncidencias.getChildren().add(empty);
+            return;
+        }
+
+        SimpleDateFormat dateFmt = new SimpleDateFormat("dd/MM/yy HH:mm");
+        for (Incidencia inc : lista) {
+            listaIncidencias.getChildren().add(crearFilaIncidencia(inc, dateFmt));
+        }
+    }
+
+    private HBox crearFilaIncidencia(Incidencia inc, SimpleDateFormat dateFmt) {
+        HBox row = new HBox(12);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.setPadding(new Insets(12, 14, 12, 14));
+        row.getStyleClass().add("user-list-row");
+
+        String estadoClase = "row-role-default";
+        String badgeClase = "";
+        String estadoColor = getEstadoColor(inc.getEstado());
+
+        if (inc.getEstado() != null) {
+            switch (inc.getEstado().toUpperCase()) {
+                case "NO LEIDO" -> { estadoClase = "row-role-admin"; badgeClase = "no-leido"; }
+                case "LEIDO" -> { estadoClase = "row-role-user"; badgeClase = "leido"; }
+                case "EN REVISION" -> { estadoClase = "row-role-pending"; badgeClase = "en-revision"; }
+                case "ACABADO" -> { estadoClase = "row-role-mantenimiento"; badgeClase = "acabado"; } 
+            }
+        }
+        row.getStyleClass().add(estadoClase);
+
+        // Badge de estado
+        Label badge = new Label(getEstadoEmoji(inc.getEstado()) + " " + inc.getEstado());
+        badge.getStyleClass().addAll("estado-badge", badgeClase);
+        badge.setMinWidth(100);
+
+        // ID
+        Label lblId = new Label("#" + inc.getId());
+        lblId.setStyle("-fx-text-fill: " + estadoColor + "; -fx-font-weight: bold; -fx-font-size: 11px;");
+        lblId.setMinWidth(30);
+
+        // Texto: título + meta
+        VBox textBlock = new VBox(2);
+        HBox.setHgrow(textBlock, Priority.ALWAYS);
+        Label lblTitulo = new Label(inc.getTitulo() != null ? inc.getTitulo() : "(sin título)");
+        lblTitulo.getStyleClass().add("user-list-name");
+        lblTitulo.setWrapText(false);
+
+        String creador = inc.getCreadorNombre() != null ? "👤 " + inc.getCreadorNombre() : "";
+        String asignado = inc.getAsignadoNombre() != null && !inc.getAsignadoNombre().isEmpty()
+                ? "  •  🔧 " + inc.getAsignadoNombre()
+                : "";
+        Label lblMeta = new Label(creador + asignado);
+        lblMeta.getStyleClass().add("user-list-email");
+
+        textBlock.getChildren().addAll(lblTitulo, lblMeta);
+
+        // Fecha
+        String fecha = inc.getFechaCreacion() != null ? dateFmt.format(inc.getFechaCreacion()) : "--";
+        Label lblFecha = new Label(fecha);
+        lblFecha.getStyleClass().add("user-list-email");
+        lblFecha.setMinWidth(72);
+        lblFecha.setAlignment(Pos.CENTER_RIGHT);
+
+        row.getChildren().addAll(badge, lblId, textBlock, lblFecha);
+
+        // Click → mostrar detalles
+        row.setOnMouseClicked(e -> {
+            listaIncidencias.getChildren().forEach(n -> {
+                if (n instanceof HBox) n.getStyleClass().remove("selected");
+            });
+            row.getStyleClass().add("selected");
+            mostrarDetalles(inc);
+        });
+
+        return row;
+    }
+
+    // ── Helpers de colores ────────────────────────────────────────────
+    private String getEstadoColor(String estado) {
+        if (estado == null)
+            return "#64748b";
+        return switch (estado.toUpperCase()) {
+            case "NO LEIDO" -> "#f87171";
+            case "LEIDO" -> "#4f8ef7";
+            case "EN REVISION" -> "#fbbf24";
+            case "ACABADO" -> "#34d399";
+            default -> "#64748b";
+        };
+    }
+
+    private String getEstadoEmoji(String estado) {
+        if (estado == null)
+            return "•";
+        return switch (estado.toUpperCase()) {
+            case "NO LEIDO" -> "🔴";
+            case "LEIDO" -> "🔵";
+            case "EN REVISION" -> "🟡";
+            case "ACABADO" -> "🟢";
+            default -> "•";
+        };
+    }
+
+
+    // ── Panel de detalles ─────────────────────────────────────────────
     private void mostrarDetalles(Incidencia incidencia) {
         this.incidenciaSeleccionada = incidencia;
-
-        // Mostrar panel de detalles
         panelDetalles.setVisible(true);
         panelDetalles.setManaged(true);
 
-        // Actualizar información
         lblDetallesTitulo.setText(incidencia.getTitulo());
         txtDetallesDescripcion.setText(incidencia.getDescripcion());
 
-        // Mostrar imagen si existe
-        if (incidencia.getImagenRuta() != null && !incidencia.getImagenRuta().isEmpty()) {
+        String asignado = incidencia.getAsignadoNombre();
+        lblAsignado.setText(asignado != null && !asignado.isEmpty() ? asignado : "Sin asignar");
+
+        boolean tieneImagen = incidencia.getImagenRuta() != null && !incidencia.getImagenRuta().isEmpty();
+        if (tieneImagen) {
             try {
-                File imgFile = new File(incidencia.getImagenRuta());
-                if (imgFile.exists()) {
-                    Image image = new Image(imgFile.toURI().toString());
-                    imgDetalles.setImage(image);
-                    imgDetalles.setVisible(true);
-                    imgDetalles.setManaged(true);
+                String ruta = incidencia.getImagenRuta();
+                if (ruta.startsWith("http")) {
+                    imgDetalles.setImage(new Image(ruta, true));
                 } else {
-                    imgDetalles.setVisible(false);
-                    imgDetalles.setManaged(false);
+                    File imgFile = new File(ruta);
+                    if (imgFile.exists()) {
+                        imgDetalles.setImage(new Image(imgFile.toURI().toString()));
+                    } else {
+                        vboxImagen.setVisible(false);
+                        vboxImagen.setManaged(false);
+                    }
                 }
-            } catch (Exception e) {
-                imgDetalles.setVisible(false);
-                imgDetalles.setManaged(false);
+                vboxImagen.setVisible(true);
+                vboxImagen.setManaged(true);
+            } catch (Exception ex) {
+                vboxImagen.setVisible(false);
+                vboxImagen.setManaged(false);
             }
         } else {
-            imgDetalles.setVisible(false);
-            imgDetalles.setManaged(false);
+            vboxImagen.setVisible(false);
+            vboxImagen.setManaged(false);
         }
 
-        // Habilitar/deshabilitar botones según el estado actual
         actualizarBotonesEstado(incidencia.getEstado());
+
+        txtAiResponse.setVisible(false);
+        txtAiResponse.setManaged(false);
+        if (btnGuardarFAQ != null) {
+            btnGuardarFAQ.setVisible(false);
+            btnGuardarFAQ.setManaged(false);
+        }
+        lblAiStatus.setText("🤖 Generando sugerencia...");
+
+        javafx.concurrent.Task<String> aiTask = new javafx.concurrent.Task<>() {
+            @Override
+            protected String call() {
+                String prompt = "Tengo una incidencia técnica con el título: \"" + incidencia.getTitulo()
+                        + "\" y la siguiente descripción: \"" + incidencia.getDescripcion()
+                        + "\". Dame pasos concisos y prácticos para solucionarla.";
+                return aiService.askAI(prompt);
+            }
+        };
+        aiTask.setOnSucceeded(e -> {
+            String resp = aiTask.getValue();
+            if (resp != null && !resp.startsWith("Groq Error") && !resp.startsWith("Connection")) {
+                txtAiResponse.setText(resp);
+                txtAiResponse.setVisible(true);
+                txtAiResponse.setManaged(true);
+                lblAiStatus.setText("✅ Sugerencia cargada.");
+                if (btnGuardarFAQ != null) {
+                    btnGuardarFAQ.setVisible(true);
+                    btnGuardarFAQ.setManaged(true);
+                }
+            } else {
+                lblAiStatus.setText("⚠ No se pudo obtener una sugerencia.");
+            }
+        });
+        aiTask.setOnFailed(e -> lblAiStatus.setText("⚠ Error al conectar con la IA."));
+        new Thread(aiTask).start();
     }
 
-    private void actualizarBotonesEstado(String estadoActual) {
-        // Deshabilitar el botón del estado actual
-        btnMarcarLeido.setDisable("LEIDO".equalsIgnoreCase(estadoActual));
-        btnMarcarEnRevision.setDisable("EN REVISION".equalsIgnoreCase(estadoActual));
-        btnMarcarAcabado.setDisable("ACABADO".equalsIgnoreCase(estadoActual));
+    @FXML
+    private void handleAsignar() {
+        if (incidenciaSeleccionada == null)
+            return;
+        List<Usuario> activos = usuarioDAO.getUsersByStatus("ACTIVE");
+        List<String> nombres = activos.stream().map(Usuario::getNombre).collect(Collectors.toList());
+        if (nombres.isEmpty()) {
+            com.example.aedusapp.utils.ui.AlertUtils.showAlert(Alert.AlertType.WARNING, "Sin usuarios",
+                    "No hay usuarios activos para asignar.");
+            return;
+        }
+        ChoiceDialog<String> dialog = new ChoiceDialog<>(nombres.get(0), nombres);
+        dialog.setTitle("Asignar Incidencia");
+        dialog.setHeaderText("¿A quién quieres asignar esta incidencia?");
+        dialog.setContentText("Técnico:");
+        Optional<String> result = dialog.showAndWait();
+        result.ifPresent(nombre -> {
+            incidenciaSeleccionada.setAsignadoNombre(nombre);
+            lblAsignado.setText(nombre);
+            aplicarFiltros();
+        });
+    }
+
+
+    private void actualizarBotonesEstado(String estado) {
+        btnMarcarLeido.setDisable("LEIDO".equalsIgnoreCase(estado));
+        btnMarcarEnRevision.setDisable("EN REVISION".equalsIgnoreCase(estado));
+        btnMarcarAcabado.setDisable("ACABADO".equalsIgnoreCase(estado));
     }
 
     private void cambiarEstado(String nuevoEstado) {
         if (incidenciaSeleccionada == null) {
-            mostrarAlerta("Error", "No hay ninguna incidencia seleccionada.", Alert.AlertType.WARNING);
+            mostrarAlerta("Error", "No hay incidencia seleccionada.", Alert.AlertType.WARNING);
             return;
         }
-
-        if (incidenciaDAO.actualizarEstado(incidenciaSeleccionada.getId(), nuevoEstado)) {
-            // Registrar en el sistema de logs
+        if (incidenciaDAO.updateStatus(incidenciaSeleccionada.getId(), nuevoEstado)) {
             LogService.logCambiarEstado(usuarioActual, incidenciaSeleccionada.getId(),
                     incidenciaSeleccionada.getTitulo(), nuevoEstado);
-
-            mostrarAlerta("Éxito", "Estado actualizado correctamente a: " + nuevoEstado,
-                    Alert.AlertType.INFORMATION);
-            cargarIncidencias();
-
-            // Actualizar el estado en la selección actual
+                    
+            if ("ACABADO".equalsIgnoreCase(nuevoEstado) && usuarioActual != null) {
+                boolean completada = misionesDAO.registrarMisionDiaria(usuarioActual.getId(), "RESOLVER_TICKET", 15);
+                if (completada) {
+                    mostrarAlerta("¡Misión Cumplida!", "Has resuelto un ticket hoy. (+15 Aedus)", Alert.AlertType.INFORMATION);
+                } else {
+                    mostrarAlerta("Éxito", "Estado actualizado a: " + nuevoEstado, Alert.AlertType.INFORMATION);
+                }
+            } else {
+                mostrarAlerta("Éxito", "Estado actualizado a: " + nuevoEstado, Alert.AlertType.INFORMATION);
+            }
+            
             incidenciaSeleccionada.setEstado(nuevoEstado);
             actualizarBotonesEstado(nuevoEstado);
+            cargarIncidencias();
         } else {
             mostrarAlerta("Error", "No se pudo actualizar el estado.", Alert.AlertType.ERROR);
         }
@@ -219,43 +492,41 @@ public class MonitorizacionController {
 
     private void eliminarTicket() {
         if (incidenciaSeleccionada == null) {
-            com.example.aedusapp.utils.AlertUtils.showAlert(Alert.AlertType.WARNING, "Error",
-                    "No hay ninguna incidencia seleccionada.");
+            com.example.aedusapp.utils.ui.AlertUtils.showAlert(Alert.AlertType.WARNING, "Error",
+                    "No hay incidencia seleccionada.");
             return;
         }
-
-        // Confirmar eliminación
-        Alert confirmacion = com.example.aedusapp.utils.AlertUtils.createConfirmationAlert(
-                "Confirmar eliminación",
-                "¿Está seguro de eliminar este ticket?",
-                "Ticket #" + incidenciaSeleccionada.getId() + ": " + incidenciaSeleccionada.getTitulo()
-                        + "\n\nEsta acción no se puede deshacer.");
-
-        Optional<ButtonType> resultado = confirmacion.showAndWait();
-        if (resultado.isPresent() && resultado.get() == ButtonType.OK) {
-            if (incidenciaDAO.eliminarIncidencia(incidenciaSeleccionada.getId())) {
-                // Registrar en el sistema de logs
+        Alert confirm = com.example.aedusapp.utils.ui.AlertUtils.createConfirmationAlert("Confirmar eliminación",
+                "¿Eliminar el ticket #" + incidenciaSeleccionada.getId() + "?", "Esta acción no se puede deshacer.");
+        if (confirm.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK) {
+            if (incidenciaDAO.deleteTicket(incidenciaSeleccionada.getId())) {
                 LogService.logEliminarIncidencia(usuarioActual, incidenciaSeleccionada.getId(),
                         incidenciaSeleccionada.getTitulo());
-
-                com.example.aedusapp.utils.AlertUtils.showAlert(Alert.AlertType.INFORMATION, "Éxito",
-                        "Ticket eliminado correctamente.");
-
-                // Ocultar panel de detalles
                 panelDetalles.setVisible(false);
                 panelDetalles.setManaged(false);
                 incidenciaSeleccionada = null;
-
-                // Recargar tabla
                 cargarIncidencias();
-            } else {
-                com.example.aedusapp.utils.AlertUtils.showAlert(Alert.AlertType.ERROR, "Error",
-                        "No se pudo eliminar el ticket.");
             }
         }
     }
 
-    private void mostrarAlerta(String titulo, String mensaje, Alert.AlertType tipo) {
-        com.example.aedusapp.utils.AlertUtils.showAlert(tipo, titulo, mensaje);
+    private void eliminarTodo() {
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
+                "Esta acción borrará permanentemente todos los tickets.\nNo se puede deshacer.", ButtonType.OK,
+                ButtonType.CANCEL);
+        confirm.setTitle("Confirmar eliminación masiva");
+        confirm.setHeaderText("¿Eliminar TODAS las incidencias?");
+        if (confirm.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK) {
+            if (incidenciaDAO.deleteAllTickets()) {
+                panelDetalles.setVisible(false);
+                panelDetalles.setManaged(false);
+                incidenciaSeleccionada = null;
+                cargarIncidencias();
+            }
+        }
+    }
+
+    private void mostrarAlerta(String titulo, String msg, Alert.AlertType tipo) {
+        com.example.aedusapp.utils.ui.AlertUtils.showAlert(tipo, titulo, msg);
     }
 }

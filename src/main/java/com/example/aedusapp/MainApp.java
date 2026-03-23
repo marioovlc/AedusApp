@@ -1,39 +1,61 @@
-package com.example.aedusapp;
+  package com.example.aedusapp;
 
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
-import java.io.IOException;
+import com.example.aedusapp.utils.config.ThemeManager;
+
+import java.net.URL;
 
 public class MainApp extends Application {
 
-    // Método de inicio
     @Override
-    public void start(Stage stage) throws IOException {
-        // Cargar la pantalla de Login al principio
-        FXMLLoader fxmlLoader = new FXMLLoader(MainApp.class.getResource("views/auth/login.fxml"));
-        Scene scene = new Scene(fxmlLoader.load(), 800, 600);
+    public void start(Stage stage) throws java.io.IOException {
+        
+        URL splashUrl = MainApp.class.getResource("/com/example/aedusapp/views/general/splash_screen.fxml");
+        if (splashUrl == null) {
+            System.err.println("CRÍTICO: No se puede encontrar /com/example/aedusapp/views/general/splash_screen.fxml");
+            // Fallback a ruta relativa por si el empaquetado inicial difiere
+            splashUrl = MainApp.class.getResource("views/general/splash_screen.fxml");
+        }
+        
+        if (splashUrl == null) {
+            throw new IllegalStateException("Recurso crítico FXML no encontrado: splash_screen.fxml");
+        }
 
-        // Añadir estilos CSS
-        String css = MainApp.class.getResource("styles/styles.css").toExternalForm();
-        scene.getStylesheets().add(css);
+        FXMLLoader fxmlLoader = new FXMLLoader(splashUrl);
+        Scene scene = new Scene(fxmlLoader.load(), com.example.aedusapp.utils.config.AppConfig.getAppWidth(), com.example.aedusapp.utils.config.AppConfig.getAppHeight());
 
-        // Configurar título e icono de la ventana
-        stage.setTitle("Aedus");
-        stage.getIcons().add(new javafx.scene.image.Image(MainApp.class.getResourceAsStream("images/logo.png")));
+        ThemeManager.applyTheme(scene);
 
-        // Mostrar la ventana
+        stage.setTitle(com.example.aedusapp.utils.config.AppConfig.getAppName());
+        
+        java.io.InputStream iconStream = MainApp.class.getResourceAsStream("/com/example/aedusapp/images/logo.png");
+        if (iconStream == null) {
+            iconStream = MainApp.class.getResourceAsStream("images/logo.png");
+        }
+        
+        if (iconStream != null) {
+            stage.getIcons().add(new javafx.scene.image.Image(iconStream));
+        } else {
+            System.err.println("Advertencia: No se pudo cargar el logo de la aplicación. Archivo no encontrado.");
+        }
+
+        stage.setResizable(false);
         stage.setScene(scene);
+        stage.centerOnScreen();
         stage.show();
     }
 
-    // Método main estándar de Java
-    public static void main(String[] args) {
-        // Inicializar base de datos
-        com.example.aedusapp.database.DatabaseInitializer.main(args);
+    @Override
+    public void stop() throws Exception {
+        com.example.aedusapp.database.config.DBConnection.closePool();
+        super.stop();
+    }
 
-        launch(); // Lanza la aplicación JavaFX
+    public static void main(String[] args) {
+        launch();
     }
 }

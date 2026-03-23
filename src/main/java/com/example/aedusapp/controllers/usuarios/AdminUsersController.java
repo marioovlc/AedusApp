@@ -1,255 +1,450 @@
 package com.example.aedusapp.controllers.usuarios;
 
-import com.example.aedusapp.database.UsuarioDAO;
+import com.example.aedusapp.database.daos.UsuarioDAO;
 import com.example.aedusapp.models.Usuario;
-import com.example.aedusapp.services.LogService;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
+import com.example.aedusapp.services.logging.LogService;
 import javafx.fxml.FXML;
-import javafx.scene.control.Alert;
-import javafx.scene.control.ButtonType;
-import javafx.scene.control.Label;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
-import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
 
-import java.util.Optional;
+import java.util.ArrayList;
+import java.util.List;
 
-// Controlador para la pantalla de Administración de Usuarios
+import java.util.stream.Collectors;
+
+/**
+ * AdminUsersController – cards dinámicas estilo timeline para Usuarios y
+ * Solicitudes.
+ */
 public class AdminUsersController {
 
-    // Tablas y columnas que se ven en la pantalla
+    // ── FXML ──────────────────────────────────────────────────────────
     @FXML
-    private TableView<Usuario> tableUsuarios; // Tabla de usuarios activos
+    private VBox listaUsuarios;
     @FXML
-    private TableColumn<Usuario, Integer> colId;
-    @FXML
-    private TableColumn<Usuario, String> colNombre;
-    @FXML
-    private TableColumn<Usuario, String> colEmail;
-    @FXML
-    private TableColumn<Usuario, Integer> colRol;
-    @FXML
-    private TableColumn<Usuario, String> colStatus;
+    private VBox listaSolicitudes;
 
+    // filtros tab usuarios
     @FXML
-    private TableView<Usuario> tableSolicitudes; // Tabla de solicitudes pendientes
+    private Button chipRolTodos;
     @FXML
-    private TableColumn<Usuario, Integer> colReqId;
+    private Button chipRolAdmin;
     @FXML
-    private TableColumn<Usuario, String> colReqNombre;
+    private Button chipRolMant;
     @FXML
-    private TableColumn<Usuario, String> colReqEmail;
+    private Button chipRolUser;
     @FXML
-    private TableColumn<Usuario, String> colReqStatus;
+    private TextField txtBuscarUsuario;
 
-    // Herramientas para manejar datos
-    private UsuarioDAO usuarioDAO = new UsuarioDAO();
-    // Listas que conectan los datos con las tablas
-    private ObservableList<Usuario> activeUsersList = FXCollections.observableArrayList();
-    private ObservableList<Usuario> pendingUsersList = FXCollections.observableArrayList();
-
+    // ── Estado ────────────────────────────────────────────────────────
+    private final UsuarioDAO usuarioDAO = new UsuarioDAO();
     private Usuario usuarioActual;
+    private Usuario usuarioSeleccionado;
+    private Usuario solicitudSeleccionada;
+
+    private List<Usuario> todosActivos = new ArrayList<>();
+    private List<Usuario> todasPendientes = new ArrayList<>();
+    private String filtroRol = "Todos";
 
     public void setUsuarioActual(Usuario usuario) {
         this.usuarioActual = usuario;
     }
 
-    // Método que se ejecuta automáticamente al abrir esta pantalla (como un
-    // constructor)
     @FXML
     public void initialize() {
-        // Configurar qué dato va en qué columna para Usuarios Activos
-        colId.setCellValueFactory(new PropertyValueFactory<>("id"));
-        colNombre.setCellValueFactory(new PropertyValueFactory<>("nombre"));
-        colEmail.setCellValueFactory(new PropertyValueFactory<>("email"));
-        colRol.setCellValueFactory(new PropertyValueFactory<>("roleId"));
-        colStatus.setCellValueFactory(new PropertyValueFactory<>("status"));
-
-        // Configurar columnas para Solicitudes Pendientes
-        colReqId.setCellValueFactory(new PropertyValueFactory<>("id"));
-        colReqNombre.setCellValueFactory(new PropertyValueFactory<>("nombre"));
-        colReqEmail.setCellValueFactory(new PropertyValueFactory<>("email"));
-        colReqStatus.setCellValueFactory(new PropertyValueFactory<>("status"));
-
-        // Cargar los datos desde la base de datos
         loadData();
     }
 
-    // Método para recargar los datos de las tablas
+    // ── Chips de rol ──────────────────────────────────────────────────
+    @FXML
+    private void onChipRolTodos() {
+        activarChipRol("Todos");
+        buscarUsuario();
+    }
+
+    @FXML
+    private void onChipRolAdmin() {
+        activarChipRol("admin");
+        buscarUsuario();
+    }
+
+    @FXML
+    private void onChipRolMant() {
+        activarChipRol("mantenimiento");
+        buscarUsuario();
+    }
+
+    @FXML
+    private void onChipRolUser() {
+        activarChipRol("user");
+        buscarUsuario();
+    }
+
+    private void activarChipRol(String rol) {
+        filtroRol = rol;
+        Button[] chips = { chipRolTodos, chipRolAdmin, chipRolMant, chipRolUser };
+        String[] roles = { "Todos", "admin", "mantenimiento", "user" };
+        for (int i = 0; i < chips.length; i++) {
+            if (chips[i] == null)
+                continue;
+            chips[i].getStyleClass().remove("chip-active");
+            if (roles[i].equalsIgnoreCase(rol))
+                chips[i].getStyleClass().add("chip-active");
+        }
+    }
+
+    @FXML
+    public void buscarUsuario() {
+        String q = txtBuscarUsuario != null ? txtBuscarUsuario.getText().toLowerCase() : "";
+        List<Usuario> filtrados = todosActivos.stream()
+                .filter(u -> "Todos".equalsIgnoreCase(filtroRol) || filtroRol.equalsIgnoreCase(u.getRole()))
+                .filter(u -> q.isBlank()
+                        || (u.getNombre() != null && u.getNombre().toLowerCase().contains(q))
+                        || (u.getEmail() != null && u.getEmail().toLowerCase().contains(q)))
+                .collect(Collectors.toList());
+        construirListaUsuarios(filtrados);
+    }
+
+    // ── Carga ─────────────────────────────────────────────────────────
     private void loadData() {
-        tableUsuarios.setPlaceholder(new Label("Cargando usuarios activos..."));
-        tableSolicitudes.setPlaceholder(new Label("Cargando solicitudes..."));
-
-        javafx.concurrent.Task<java.util.List<Usuario>> activeTask = new javafx.concurrent.Task<>() {
+        // Usuarios activos
+        javafx.concurrent.Task<List<Usuario>> activeTask = new javafx.concurrent.Task<>() {
             @Override
-            protected java.util.List<Usuario> call() throws Exception {
-                return usuarioDAO.obtenerUsuariosPorEstado("ACTIVE");
+            protected List<Usuario> call() {
+                return usuarioDAO.getUsersByStatus("ACTIVE");
             }
         };
-
-        javafx.concurrent.Task<java.util.List<Usuario>> pendingTask = new javafx.concurrent.Task<>() {
-            @Override
-            protected java.util.List<Usuario> call() throws Exception {
-                return usuarioDAO.obtenerUsuariosPorEstado("PENDING");
-            }
-        };
-
         activeTask.setOnSucceeded(e -> {
-            activeUsersList.setAll(activeTask.getValue());
-            tableUsuarios.setItems(activeUsersList);
-            if (activeTask.getValue().isEmpty()) {
-                tableUsuarios.setPlaceholder(new Label("No hay usuarios activos."));
-            }
+            todosActivos = activeTask.getValue();
+            buscarUsuario();
         });
-
-        pendingTask.setOnSucceeded(e -> {
-            pendingUsersList.setAll(pendingTask.getValue());
-            tableSolicitudes.setItems(pendingUsersList);
-            if (pendingTask.getValue().isEmpty()) {
-                tableSolicitudes.setPlaceholder(new Label("No hay solicitudes pendientes."));
-            }
-        });
-
+        activeTask.setOnFailed(e -> mostrarError(listaUsuarios, "Error al cargar usuarios activos."));
         new Thread(activeTask).start();
+
+        // Solicitudes pendientes
+        javafx.concurrent.Task<List<Usuario>> pendingTask = new javafx.concurrent.Task<>() {
+            @Override
+            protected List<Usuario> call() {
+                return usuarioDAO.getUsersByStatus("PENDING");
+            }
+        };
+        pendingTask.setOnSucceeded(e -> {
+            todasPendientes = pendingTask.getValue();
+            construirListaSolicitudes(todasPendientes);
+        });
+        pendingTask.setOnFailed(e -> mostrarError(listaSolicitudes, "Error al cargar solicitudes."));
         new Thread(pendingTask).start();
     }
 
-    // Acción para el botón "Editar Usuario"
+    // ── Cards de Usuarios Activos ─────────────────────────────────────
+    private void construirListaUsuarios(List<Usuario> lista) {
+        listaUsuarios.getChildren().clear();
+        if (lista.isEmpty()) {
+            mostrarVacio(listaUsuarios, "👤", "No hay usuarios que coincidan");
+            return;
+        }
+        for (Usuario u : lista)
+            listaUsuarios.getChildren().add(crearFilaUsuario(u));
+    }
+
+    private HBox crearFilaUsuario(Usuario u) {
+        String rolColor = getRolColor(u.getRole());
+        
+        HBox row = new HBox(14);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.setPadding(new Insets(12, 14, 12, 14));
+        row.getStyleClass().addAll("user-list-row", "row-role-" + getRolClass(u.getRole()));
+
+        // Avatar circular
+        String inicial = (u.getNombre() != null && !u.getNombre().isEmpty())
+                ? String.valueOf(u.getNombre().charAt(0)).toUpperCase()
+                : "?";
+        Label avatar = new Label(inicial);
+        avatar.setMinSize(36, 36);
+        avatar.setMaxSize(36, 36);
+        avatar.setAlignment(Pos.CENTER);
+        avatar.setStyle(
+                "-fx-background-color: " + hexToRgba(rolColor, 0.2) + ";" +
+                        "-fx-text-fill: " + rolColor + ";" +
+                        "-fx-font-weight: bold; -fx-font-size: 14px; -fx-background-radius: 18;");
+
+        // Texto: nombre + email
+        VBox textBlock = new VBox(2);
+        HBox.setHgrow(textBlock, Priority.ALWAYS);
+        Label lblNombre = new Label(u.getNombre() != null ? u.getNombre() : "(sin nombre)");
+        lblNombre.getStyleClass().add("user-list-name");
+        Label lblEmail = new Label(u.getEmail() != null ? u.getEmail() : "");
+        lblEmail.getStyleClass().add("user-list-email");
+        textBlock.getChildren().addAll(lblNombre, lblEmail);
+
+        // Badge de rol
+        Label rolBadge = new Label(getRolEmoji(u.getRole()) + " " + getRolLabel(u.getRole()));
+        rolBadge.setStyle(
+                "-fx-background-color: " + hexToRgba(rolColor, 0.15) + ";" +
+                        "-fx-text-fill: " + rolColor + ";" +
+                        "-fx-font-size: 10px; -fx-font-weight: bold;" +
+                        "-fx-padding: 3 10; -fx-background-radius: 10;");
+
+        row.getChildren().addAll(avatar, textBlock, rolBadge);
+
+        // Selección visual
+        row.setOnMouseClicked(e -> {
+            listaUsuarios.getChildren().forEach(n -> {
+                if (n instanceof HBox h)
+                    h.getStyleClass().remove("selected");
+            });
+            row.getStyleClass().add("selected");
+            usuarioSeleccionado = u;
+            solicitudSeleccionada = null;
+        });
+
+        return row;
+    }
+
+    // ── Cards de Solicitudes Pendientes ───────────────────────────────
+    private void construirListaSolicitudes(List<Usuario> lista) {
+        listaSolicitudes.getChildren().clear();
+        if (lista.isEmpty()) {
+            mostrarVacio(listaSolicitudes, "⏳", "No hay solicitudes pendientes");
+            return;
+        }
+        for (Usuario u : lista)
+            listaSolicitudes.getChildren().add(crearFilaSolicitud(u));
+    }
+
+    private HBox crearFilaSolicitud(Usuario u) {
+        HBox row = new HBox(14);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.setPadding(new Insets(12, 14, 12, 14));
+        row.getStyleClass().addAll("user-list-row", "row-role-pending");
+
+        // Avatar
+        String inicial = (u.getNombre() != null && !u.getNombre().isEmpty())
+                ? String.valueOf(u.getNombre().charAt(0)).toUpperCase()
+                : "?";
+        Label avatar = new Label(inicial);
+        avatar.setMinSize(36, 36);
+        avatar.setMaxSize(36, 36);
+        avatar.setAlignment(Pos.CENTER);
+        avatar.setStyle(
+                "-fx-background-color: rgba(251,191,36,0.18);" +
+                        "-fx-text-fill: #fbbf24;" +
+                        "-fx-font-weight: bold; -fx-font-size: 14px; -fx-background-radius: 18;");
+
+        // Texto nombre + email
+        VBox textBlock = new VBox(2);
+        HBox.setHgrow(textBlock, Priority.ALWAYS);
+        Label lblNombre = new Label(u.getNombre() != null ? u.getNombre() : "(sin nombre)");
+        lblNombre.getStyleClass().add("user-list-name");
+        Label lblEmail = new Label(u.getEmail() != null ? u.getEmail() : "");
+        lblEmail.getStyleClass().add("user-list-email");
+        textBlock.getChildren().addAll(lblNombre, lblEmail);
+
+        // Badge pendiente
+        Label badge = new Label("⏳ PENDIENTE");
+        badge.setStyle(
+                "-fx-background-color: rgba(251,191,36,0.15);" +
+                        "-fx-text-fill: #fbbf24;" +
+                        "-fx-font-size: 10px; -fx-font-weight: bold;" +
+                        "-fx-padding: 3 10; -fx-background-radius: 10;");
+
+        row.getChildren().addAll(avatar, textBlock, badge);
+
+        row.setOnMouseClicked(e -> {
+            listaSolicitudes.getChildren().forEach(n -> {
+                if (n instanceof HBox h)
+                    h.getStyleClass().remove("selected");
+            });
+            row.getStyleClass().add("selected");
+            solicitudSeleccionada = u;
+            usuarioSeleccionado = null;
+        });
+
+        return row;
+    }
+
+    // ── Acciones ──────────────────────────────────────────────────────
     @FXML
     private void handleEditUser() {
-        // Ver qué usuario está seleccionado
-        Usuario selectedUser = tableUsuarios.getSelectionModel().getSelectedItem();
-        if (selectedUser == null) {
+        if (usuarioSeleccionado == null) {
             showAlert(Alert.AlertType.WARNING, "Selección requerida", "Selecciona un usuario para editar.");
             return;
         }
-
         try {
-            // Abrir la ventana emergente de edición (edit_user_dialog.fxml)
             javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader();
             loader.setLocation(getClass().getResource("/com/example/aedusapp/views/usuarios/edit_user_dialog.fxml"));
-            javafx.scene.layout.VBox page = (javafx.scene.layout.VBox) loader.load();
+            javafx.scene.layout.VBox page = loader.load();
 
             javafx.stage.Stage dialogStage = new javafx.stage.Stage();
             dialogStage.setTitle("Editar Usuario");
-            dialogStage.initModality(javafx.stage.Modality.WINDOW_MODAL); // Bloquea la ventana de atrás
-            dialogStage.initOwner(tableUsuarios.getScene().getWindow());
+            dialogStage.initModality(javafx.stage.Modality.WINDOW_MODAL);
+            dialogStage.initOwner(listaUsuarios.getScene().getWindow());
             javafx.scene.Scene scene = new javafx.scene.Scene(page);
             String css = getClass().getResource("/com/example/aedusapp/styles/styles.css").toExternalForm();
             scene.getStylesheets().add(css);
             dialogStage.setScene(scene);
 
-            // Pasarle los datos del usuario al controlador de edición
             EditUserController controller = loader.getController();
-            controller.setUsuario(selectedUser);
-
-            // Mostrar el diálogo y esperar a que se cierre
+            controller.setUsuario(usuarioSeleccionado);
             dialogStage.showAndWait();
 
-            // Si se guardaron cambios, actualizar la base de datos
             if (controller.isSaveClicked()) {
-                Usuario updatedUser = controller.getUsuario();
-                if (usuarioDAO.actualizarUsuario(updatedUser)) {
-                    if (usuarioActual != null) {
-                        LogService.logEditarUsuario(usuarioActual, updatedUser.getNombre());
-                    }
-                    loadData(); // Refrescar la tabla
+                Usuario updated = controller.getUsuario();
+                if (usuarioDAO.updateUser(updated)) {
+                    if (usuarioActual != null)
+                        LogService.logEditarUsuario(usuarioActual, updated.getNombre());
+                    loadData();
                     showAlert(Alert.AlertType.INFORMATION, "Éxito", "Usuario actualizado correctamente.");
                 } else {
                     showAlert(Alert.AlertType.ERROR, "Error", "No se pudo actualizar el usuario.");
                 }
             }
-
         } catch (java.io.IOException e) {
             e.printStackTrace();
         }
     }
 
-    // Acción para el botón "Eliminar Usuario"
     @FXML
     private void handleDeleteUser() {
-        Usuario selectedUser = tableUsuarios.getSelectionModel().getSelectedItem();
-        if (selectedUser == null) {
+        if (usuarioSeleccionado == null) {
             showAlert(Alert.AlertType.WARNING, "Selección requerida", "Selecciona un usuario para eliminar.");
             return;
         }
-
-        // Preguntar confirmación antes de borrar
-        Alert alert = com.example.aedusapp.utils.AlertUtils.createConfirmationAlert(
-                "Confirmar eliminación",
-                "Eliminar usuario: " + selectedUser.getNombre(),
+        Alert alert = com.example.aedusapp.utils.ui.AlertUtils.createConfirmationAlert(
+                "Confirmar eliminación", "Eliminar usuario: " + usuarioSeleccionado.getNombre(),
                 "¿Estás seguro? Esta acción no se puede deshacer.");
-
-        Optional<ButtonType> result = alert.showAndWait();
-        if (result.isPresent() && result.get() == ButtonType.OK) {
-            // Si dice que SÍ, borrar de la base de datos
-            if (usuarioDAO.eliminarUsuario(selectedUser.getId())) {
-                if (usuarioActual != null) {
-                    LogService.logEliminarUsuario(usuarioActual, selectedUser.getNombre());
-                }
-                loadData(); // Refrescar
+        if (alert.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK) {
+            if (usuarioDAO.deleteUser(usuarioSeleccionado.getId())) {
+                if (usuarioActual != null)
+                    LogService.logEliminarUsuario(usuarioActual, usuarioSeleccionado.getNombre());
+                usuarioSeleccionado = null;
+                loadData();
             } else {
                 showAlert(Alert.AlertType.ERROR, "Error", "Error al eliminar usuario.");
             }
         }
     }
 
-    // Acción para aprobar una solicitud de registro
     @FXML
     private void handleApproveRequest() {
-        Usuario selectedUser = tableSolicitudes.getSelectionModel().getSelectedItem();
-        if (selectedUser == null) {
+        if (solicitudSeleccionada == null) {
             showAlert(Alert.AlertType.WARNING, "Selección requerida", "Selecciona una solicitud para aprobar.");
             return;
         }
+        String role = solicitudSeleccionada.getRole();
+        if (role == null || role.isEmpty() || role.equals("0"))
+            role = "user";
 
-        // Validar roles
-        java.util.List<Integer> roles = selectedUser.getRoles();
-        if (roles == null || roles.isEmpty() || (roles.size() == 1 && roles.get(0) == 0)) {
-            // Asignar rol de Profesor (2) por defecto si no tiene rol válido
-            roles = new java.util.ArrayList<>();
-            roles.add(2);
-        }
-
-        // Cambiar estado a "ACTIVE"
-        Usuario approvedUser = new Usuario(selectedUser.getId(), selectedUser.getNombre(), selectedUser.getEmail(),
-                selectedUser.getPassword(), "ACTIVE", roles);
-
-        if (usuarioDAO.actualizarUsuario(approvedUser)) {
-            if (usuarioActual != null) {
+        Usuario approvedUser = new Usuario(solicitudSeleccionada.getId(), solicitudSeleccionada.getNombre(),
+                solicitudSeleccionada.getEmail(), solicitudSeleccionada.getPassword(), "ACTIVE", role,
+                solicitudSeleccionada.getAeducoins());
+        if (usuarioDAO.updateUser(approvedUser)) {
+            if (usuarioActual != null)
                 LogService.logCrearUsuario(usuarioActual, approvedUser.getNombre());
-            }
-            showAlert(Alert.AlertType.INFORMATION, "Aprobado", "El usuario ha sido activado con rol de Profesor.");
+            showAlert(Alert.AlertType.INFORMATION, "Aprobado", "El usuario ha sido activado.");
+            solicitudSeleccionada = null;
             loadData();
         } else {
             showAlert(Alert.AlertType.ERROR, "Error", "Error al aprobar usuario.");
         }
     }
 
-    // Acción para rechazar una solicitud
     @FXML
     private void handleDenyRequest() {
-        Usuario selectedUser = tableSolicitudes.getSelectionModel().getSelectedItem();
-        if (selectedUser == null) {
+        if (solicitudSeleccionada == null) {
             showAlert(Alert.AlertType.WARNING, "Selección requerida", "Selecciona una solicitud para rechazar.");
             return;
         }
-
-        // Eliminar al usuario de la base de datos
-        if (usuarioDAO.eliminarUsuario(selectedUser.getId())) {
-            if (usuarioActual != null) {
-                LogService.logEliminarUsuario(usuarioActual, selectedUser.getNombre() + " (Solicitud Rechazada)");
-            }
-            showAlert(Alert.AlertType.INFORMATION, "Rechazado", "La solicitud ha sido rechazada y eliminada.");
+        if (usuarioDAO.deleteUser(solicitudSeleccionada.getId())) {
+            if (usuarioActual != null)
+                LogService.logEliminarUsuario(usuarioActual, solicitudSeleccionada.getNombre() + " (Rechazado)");
+            showAlert(Alert.AlertType.INFORMATION, "Rechazado", "La solicitud ha sido rechazada.");
+            solicitudSeleccionada = null;
             loadData();
         } else {
             showAlert(Alert.AlertType.ERROR, "Error", "Error al rechazar usuario.");
         }
     }
 
-    // Método auxiliar para mostrar alertas
+    // ── Helpers ───────────────────────────────────────────────────────
+    private String getRolClass(String rol) {
+        if (rol == null)
+            return "default";
+        return switch (rol.toLowerCase()) {
+            case "admin" -> "admin";
+            case "mantenimiento" -> "mantenimiento";
+            case "user" -> "user";
+            default -> "default";
+        };
+    }
+
+    private String getRolColor(String rol) {
+        if (rol == null)
+            return "#64748b";
+        return switch (rol.toLowerCase()) {
+            case "admin" -> "#f87171";
+            case "mantenimiento" -> "#fbbf24";
+            case "user" -> "#4f8ef7";
+            default -> "#64748b";
+        };
+    }
+
+    private String getRolEmoji(String rol) {
+        if (rol == null)
+            return "•";
+        return switch (rol.toLowerCase()) {
+            case "admin" -> "🔴";
+            case "mantenimiento" -> "🟡";
+            case "user" -> "🔵";
+            default -> "•";
+        };
+    }
+
+    private String getRolLabel(String rol) {
+        if (rol == null)
+            return "Usuario";
+        return switch (rol.toLowerCase()) {
+            case "admin" -> "Administrador";
+            case "mantenimiento" -> "Mantenimiento";
+            case "user" -> "Usuario";
+            default -> rol;
+        };
+    }
+
+    private String hexToRgba(String hex, double alpha) {
+        try {
+            hex = hex.replace("#", "");
+            int r = Integer.parseInt(hex.substring(0, 2), 16);
+            int g = Integer.parseInt(hex.substring(2, 4), 16);
+            int b = Integer.parseInt(hex.substring(4, 6), 16);
+            return "rgba(" + r + "," + g + "," + b + "," + alpha + ")";
+        } catch (Exception e) {
+            return "rgba(100,116,139,0.15)";
+        }
+    }
+
+    private void mostrarVacio(VBox container, String emoji, String msg) {
+        VBox empty = new VBox(8);
+        empty.setAlignment(Pos.CENTER);
+        empty.setPadding(new Insets(60));
+        Label icon = new Label(emoji);
+        icon.setStyle("-fx-font-size: 42px; -fx-opacity: 0.3;");
+        Label lbl = new Label(msg);
+        lbl.setStyle("-fx-font-size: 15px; -fx-text-fill: #475569;");
+        empty.getChildren().addAll(icon, lbl);
+        container.getChildren().add(empty);
+    }
+
+    private void mostrarError(VBox container, String msg) {
+        container.getChildren().clear();
+        Label err = new Label("⚠ " + msg);
+        err.setStyle("-fx-text-fill: #f87171; -fx-font-size: 13px; -fx-padding: 20;");
+        container.getChildren().add(err);
+    }
+
     private void showAlert(Alert.AlertType type, String title, String content) {
-        com.example.aedusapp.utils.AlertUtils.showAlert(type, title, content);
+        com.example.aedusapp.utils.ui.AlertUtils.showAlert(type, title, content);
     }
 }

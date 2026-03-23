@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Priority?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Text?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+
+<HBox spacing="10.0" styleClass="content-area"
+      xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.example.aedusapp.controllers.general.ConnectHubController">
+    <padding><Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/></padding>
+
+    <!-- PANE 1: Left List (Contacts/Tickets) -->
+    <VBox prefWidth="300.0" spacing="12.0" styleClass="details-panel">
+        <padding><Insets bottom="12.0" left="12.0" right="12.0" top="12.0"/></padding>
+        <Label styleClass="page-subtitle" text="Messenger Institucional"/>
+        
+        <!-- Toggle Switch -->
+        <HBox styleClass="hub-toggle-container">
+            <Button fx:id="btnTabTickets" text="Tickets" styleClass="hub-toggle-btn, active" HBox.hgrow="ALWAYS" maxWidth="Infinity" onAction="#mostrarPestanaTickets"/>
+            <Button fx:id="btnTabPersonas" text="Personas" styleClass="hub-toggle-btn" HBox.hgrow="ALWAYS" maxWidth="Infinity" onAction="#mostrarPestanaPersonas"/>
+        </HBox>
+
+        <!-- Buscador -->
+        <HBox alignment="CENTER_LEFT" spacing="8.0" styleClass="hub-search-box">
+            <Label text="🔍" styleClass="hub-search-icon"/>
+            <TextField fx:id="txtBusqueda" promptText="Buscar..." styleClass="hub-search-field" HBox.hgrow="ALWAYS"/>
+        </HBox>
+
+        <VBox alignment="CENTER_LEFT" spacing="8.0" styleClass="user-list-row, hub-ai-item" fx:id="itemAedusAI" onMouseClicked="#seleccionarAi">
+            <padding><Insets bottom="8.0" left="8.0" right="8.0" top="8.0"/></padding>
+            <Label text="🤖" style="-fx-font-size: 24px;"/>
+            <VBox>
+                <Label text="Aedus AI" styleClass="user-list-name"/>
+                <Label text="Soporte Inteligente" styleClass="user-list-email"/>
+            </VBox>
+        </VBox>
+        
+        <Separator/>
+        
+        <!-- Listas Apiladas -->
+        <VBox VBox.vgrow="ALWAYS" spacing="10">
+            <VBox fx:id="boxListaTickets" VBox.vgrow="ALWAYS">
+                <Label text="TUS INCIDENCIAS" styleClass="details-label"/>
+                <ListView fx:id="listaTickets" VBox.vgrow="ALWAYS" styleClass="scroll-pane"/>
+            </VBox>
+            <VBox fx:id="boxListaPersonas" VBox.vgrow="ALWAYS" visible="false" managed="false">
+                <Label text="COMPAÑEROS" styleClass="details-label"/>
+                <ListView fx:id="listaUsuarios" VBox.vgrow="ALWAYS" styleClass="scroll-pane"/>
+            </VBox>
+        </VBox>
+    </VBox>
+
+    <!-- PANE 2: Center Chat Area -->
+    <VBox HBox.hgrow="ALWAYS" spacing="10.0" styleClass="details-panel">
+        <padding><Insets bottom="10.0" left="10.0" right="10.0" top="10.0"/></padding>
+        
+        <HBox alignment="CENTER_LEFT" spacing="10.0">
+            <Label fx:id="lblChatDestino" styleClass="page-title" text="Selecciona un chat..."/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Label fx:id="lblChatStatus" text="" styleClass="user-list-email"/>
+        </HBox>
+        <Separator/>
+
+        <!-- Chat history -->
+        <ScrollPane fx:id="scrollChat" fitToWidth="true" styleClass="scroll-pane" VBox.vgrow="ALWAYS">
+            <VBox fx:id="chatContainer" spacing="10.0">
+                <padding><Insets bottom="10.0" left="10.0" right="10.0" top="10.0"/></padding>
+            </VBox>
+        </ScrollPane>
+
+        <!-- Input Box -->
+        <HBox spacing="8.0" alignment="CENTER">
+            <Button fx:id="btnAdjuntar" styleClass="icon-button" text="📎" style="-fx-font-size: 16px;"/>
+            <Button fx:id="btnGrabarVoz" styleClass="icon-button" text="🎤" style="-fx-font-size: 16px; -fx-text-fill: #ef4444;" onMousePressed="#iniciarGrabacion" onMouseReleased="#detenerGrabacion"/>
+            <TextField fx:id="txtMensaje" HBox.hgrow="ALWAYS" promptText="Escribe un mensaje..." style="-fx-font-size: 13px; -fx-padding: 8; -fx-background-radius: 20;"/>
+            <Button fx:id="btnEnviar" styleClass="action-button,primary-button" text="Enviar" defaultButton="true"/>
+        </HBox>
+        <HBox alignment="CENTER" spacing="5.0">
+             <Label fx:id="lblRecordingStatus" text="Mantén 🎤 pulsado para hablar" style="-fx-text-fill: #64748b; -fx-font-size: 11px;"/>
+        </HBox>
+    </VBox>
+
+    <!-- PANE 3: Right Details Panel (Dynamic) -->
+    <VBox prefWidth="320.0" spacing="14.0" styleClass="details-panel">
+        <padding><Insets bottom="15.0" left="15.0" right="15.0" top="15.0"/></padding>
+        <StackPane VBox.vgrow="ALWAYS">
+            <!-- Vista 1: Detalles de Incidencia -->
+            <VBox fx:id="paneDetalleTicket" spacing="14.0">
+                <Label styleClass="details-header" text="📋 Detalles del Ticket"/>
+                <Separator/>
+
+                <VBox spacing="4.0">
+                    <Label styleClass="details-label" text="TÍTULO"/>
+                    <Label fx:id="lblDetalleTitulo" styleClass="details-value" wrapText="true" text="--"/>
+                </VBox>
+
+                <VBox spacing="4.0">
+                    <Label styleClass="details-label" text="DESCRIPCIÓN"/>
+                    <ScrollPane fitToWidth="true" maxHeight="100.0" styleClass="description-scroll">
+                        <Text fx:id="txtDetalleDescripcion" wrappingWidth="260.0" styleClass="details-description" text="--"/>
+                    </ScrollPane>
+                </VBox>
+                
+                <HBox spacing="10.0">
+                    <VBox spacing="4.0" HBox.hgrow="ALWAYS">
+                        <Label styleClass="details-label" text="ESTADO"/>
+                        <Label fx:id="lblDetalleEstado" styleClass="details-value" text="--"/>
+                    </VBox>
+                    <VBox spacing="4.0" HBox.hgrow="ALWAYS">
+                        <Label styleClass="details-label" text="AULA"/>
+                        <Label fx:id="lblDetalleAula" styleClass="details-value" text="--"/>
+                    </VBox>
+                </HBox>
+
+                <VBox fx:id="vboxImagen" spacing="4.0">
+                    <Label styleClass="details-label" text="IMAGEN ADJUNTA"/>
+                    <ImageView fx:id="imgDetalle" fitHeight="150.0" fitWidth="280.0" preserveRatio="true" styleClass="details-image"/>
+                </VBox>
+                <Region VBox.vgrow="ALWAYS"/>
+                
+                <Button fx:id="btnCompartirTicket" text="🚀 Compartir en Chat" maxWidth="Infinity" styleClass="action-button, primary" onAction="#compartirTicketActual" visible="false" managed="false"/>
+                <Button text="Ir a la Incidencia Completa" maxWidth="Infinity" styleClass="action-button"/>
+            </VBox>
+
+            <!-- Vista 2: Perfil de Usuario -->
+            <VBox fx:id="paneDetalleUsuario" spacing="14.0" visible="false">
+                <Label styleClass="details-header" text="👤 Perfil de Usuario"/>
+                <Separator/>
+                
+                <VBox alignment="CENTER" spacing="10">
+                    <ImageView fx:id="imgPerfilGrande" fitHeight="120.0" fitWidth="120.0" pickOnBounds="true" preserveRatio="true" styleClass="profile-avatar-large"/>
+                    <Label fx:id="lblPerfilNombre" styleClass="h2" text="Nombre Usuario"/>
+                    <Label fx:id="lblPerfilRol" styleClass="user-role-label" text="ADMIN"/>
+                </VBox>
+
+                <VBox spacing="4.0">
+                    <Label styleClass="details-label" text="EMAIL"/>
+                    <TextField fx:id="txtPerfilEmail" editable="false" styleClass="text-field"/>
+                </VBox>
+
+                <VBox spacing="4.0">
+                    <Label styleClass="details-label" text="TELÉFONO"/>
+                    <TextField fx:id="txtPerfilTelefono" promptText="Añadir teléfono..." styleClass="text-field"/>
+                </VBox>
+
+                <VBox spacing="4.0">
+                    <Label styleClass="details-label" text="BIO / ESTADO"/>
+                    <TextArea fx:id="txtPerfilBio" prefRowCount="3" promptText="Escribe algo sobre ti..." wrapText="true" styleClass="text-area"/>
+                </VBox>
+
+                <Region VBox.vgrow="ALWAYS"/>
+                <Button fx:id="btnGuardarPerfil" text="💾 Guardar Cambios" maxWidth="Infinity" styleClass="action-button, success" onAction="#guardarPerfilPropio"/>
+            </VBox>
+        </StackPane>
+    </VBox>
+
+</HBox>

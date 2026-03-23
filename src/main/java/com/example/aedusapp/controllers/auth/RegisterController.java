@@ -1,7 +1,7 @@
 package com.example.aedusapp.controllers.auth;
 
 import com.example.aedusapp.MainApp;
-import com.example.aedusapp.database.UsuarioDAO;
+import com.example.aedusapp.database.daos.UsuarioDAO;
 import com.example.aedusapp.models.Usuario;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -57,12 +57,13 @@ public class RegisterController {
             return;
         }
 
-        // Crear el nuevo usuario (Rol 2 = usuario estándar/profesor, Estado = PENDING)
-        Usuario newUser = new Usuario(0, nombre, email, password, "PENDING", 2);
+        // Crear el nuevo usuario (ID null para insert, Rol 2 = usuario
+        // estándar/profesor, Estado = PENDING)
+        Usuario newUser = new Usuario(null, nombre, email, password, "PENDING", 2);
 
         // Intentar guardar en base de datos
-        if (usuarioDAO.registrarUsuario(newUser)) {
-            com.example.aedusapp.utils.AlertUtils.showAlert(Alert.AlertType.INFORMATION, "Registro Exitoso",
+        if (usuarioDAO.registerUser(newUser)) {
+            com.example.aedusapp.utils.ui.AlertUtils.showAlert(Alert.AlertType.INFORMATION, "Registro Exitoso",
                     "Tu cuenta ha sido creada y está pendiente de aprobación por un administrador.");
             handleBackToLogin(); // Volver al login si todo sale bien
         } else {
