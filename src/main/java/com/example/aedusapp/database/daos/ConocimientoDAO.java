@@ -1,19 +1,20 @@
 package com.example.aedusapp.database.daos;
 
 import com.example.aedusapp.database.config.DBConnection;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
 public class ConocimientoDAO {
+    private static final Logger logger = LoggerFactory.getLogger(ConocimientoDAO.class);
+    private static final String TABLE_NAME = "base_conocimiento";
 
-    public ConocimientoDAO() {
-        createTableIfNotExists();
-    }
-
-    private void createTableIfNotExists() {
-        String sql = "CREATE TABLE IF NOT EXISTS base_conocimiento (" +
+    public void createTable() {
+        String sql = "CREATE TABLE IF NOT EXISTS " + TABLE_NAME + " (" +
                 "id SERIAL PRIMARY KEY, " +
                 "titulo VARCHAR(255) NOT NULL, " +
                 "contenido TEXT NOT NULL" +
@@ -21,21 +22,21 @@ public class ConocimientoDAO {
         try (Connection con = DBConnection.getConnection();
              Statement stmt = con.createStatement()) {
             stmt.execute(sql);
-            System.out.println("Tabla 'base_conocimiento' verificada/creada con éxito.");
+            logger.info("Tabla '{}' verificada/creada con éxito.", TABLE_NAME);
         } catch (Exception e) {
-            System.err.println("Error creando tabla base_conocimiento: " + e.getMessage());
+            logger.error("Error creando tabla {}: {}", TABLE_NAME, e.getMessage(), e);
         }
     }
 
     public boolean insertArticulo(String titulo, String contenido) {
-        String sql = "INSERT INTO base_conocimiento (titulo, contenido) VALUES (?, ?)";
+        String sql = "INSERT INTO " + TABLE_NAME + " (titulo, contenido) VALUES (?, ?)";
         try (Connection con = DBConnection.getConnection();
              PreparedStatement pstmt = con.prepareStatement(sql)) {
             pstmt.setString(1, titulo);
             pstmt.setString(2, contenido);
             return pstmt.executeUpdate() > 0;
         } catch (Exception e) {
-            System.err.println("Error al insertar conocimiento: " + e.getMessage());
+            logger.error("Error al insertar conocimiento: {}", e.getMessage(), e);
             return false;
         }
     }
@@ -43,31 +44,25 @@ public class ConocimientoDAO {
     public String[] buscarArticuloSimilar(String query) {
         if (query == null || query.isBlank()) return null;
         
-        // Simple word matching based on ILIKE or splitting words.
-        // For simplicity, we just split the query and look for matches in title.
-        String[] words = query.toLowerCase().split("\\s+");
-        if (words.length == 0) return null;
-
-        StringBuilder sqlBuilder = new StringBuilder("SELECT titulo, contenido FROM base_conocimiento WHERE ");
-        for (int i = 0; i < words.length; i++) {
-            sqlBuilder.append("titulo ILIKE ?");
-            if (i < words.length - 1) sqlBuilder.append(" OR ");
-        }
-        sqlBuilder.append(" LIMIT 1");
+        // Full-Text Search de PostgreSQL: Priorizamos la inteligencia nativa
+        String sql = "SELECT titulo, contenido FROM " + TABLE_NAME + " " +
+                     "WHERE to_tsvector('spanish', titulo || ' ' || contenido) @@ plainto_tsquery('spanish', ?) " +
+                     "ORDER BY ts_rank(to_tsvector('spanish', titulo || ' ' || contenido), plainto_tsquery('spanish', ?)) DESC " +
+                     "LIMIT 1";
 
         try (Connection con = DBConnection.getConnection();
-             PreparedStatement pstmt = con.prepareStatement(sqlBuilder.toString())) {
+             PreparedStatement pstmt = con.prepareStatement(sql)) {
             
-            for (int i = 0; i < words.length; i++) {
-                pstmt.setString(i + 1, "%" + words[i] + "%");
-            }
+            pstmt.setString(1, query);
+            pstmt.setString(2, query);
             
-            ResultSet rs = pstmt.executeQuery();
-            if (rs.next()) {
-                return new String[]{ rs.getString("titulo"), rs.getString("contenido") };
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return new String[]{ rs.getString("titulo"), rs.getString("contenido") };
+                }
             }
         } catch (Exception e) {
-            System.err.println("Error buscando conocimiento similar: " + e.getMessage());
+            logger.error("Error buscando conocimiento similar con FTS: {}", e.getMessage(), e);
         }
         return null; // Not found
     }

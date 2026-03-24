@@ -1,72 +1,46 @@
 package com.example.aedusapp.database.daos;
 
-import com.example.aedusapp.database.config.DBConnection;
-
+import com.example.aedusapp.database.config.DatabaseHelper;
 import com.example.aedusapp.models.TiendaItem;
-import java.sql.*;
-import java.util.ArrayList;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.List;
 
 public class TiendaDAO {
+    private static final Logger logger = LoggerFactory.getLogger(TiendaDAO.class);
+    private static final String TABLE_NAME = "tienda_items";
+
+    private static final DatabaseHelper.RowMapper<TiendaItem> ITEM_MAPPER = rs -> new TiendaItem(
+            rs.getInt("id"),
+            rs.getString("nombre"),
+            rs.getInt("coste"),
+            rs.getString("descripcion")
+    );
 
     public void createTable() {
-        String sql = "CREATE TABLE IF NOT EXISTS tienda_items (" +
+        String sql = "CREATE TABLE IF NOT EXISTS " + TABLE_NAME + " (" +
                      "id SERIAL PRIMARY KEY, " +
                      "nombre VARCHAR(100) NOT NULL, " +
                      "coste INT NOT NULL, " +
                      "descripcion TEXT)";
-        try (Connection conn = DBConnection.getConnection();
-             Statement stmt = conn.createStatement()) {
-            stmt.executeUpdate(sql);
-            System.out.println("Table 'tienda_items' verified/created successfully.");
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        DatabaseHelper.executeUpdate(sql);
+        logger.info("Tabla '{}' verificada/creada con éxito.", TABLE_NAME);
     }
 
     public List<TiendaItem> getAllItems() {
-        List<TiendaItem> items = new ArrayList<>();
-        String sql = "SELECT id, nombre, coste, descripcion FROM tienda_items ORDER BY coste ASC";
-        try (Connection conn = DBConnection.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            while (rs.next()) {
-                items.add(new TiendaItem(
-                    rs.getInt("id"),
-                    rs.getString("nombre"),
-                    rs.getInt("coste"),
-                    rs.getString("descripcion")
-                ));
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return items;
+        String sql = "SELECT id, nombre, coste, descripcion FROM " + TABLE_NAME + " ORDER BY coste ASC";
+        return DatabaseHelper.queryForList(sql, ITEM_MAPPER);
     }
 
     public boolean saveItem(TiendaItem item) {
-        String sql = "INSERT INTO tienda_items (nombre, coste, descripcion) VALUES (?, ?, ?)";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, item.getNombre());
-            stmt.setInt(2, item.getCoste());
-            stmt.setString(3, item.getDescripcion());
-            return stmt.executeUpdate() > 0;
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
-        }
+        String sql = "INSERT INTO " + TABLE_NAME + " (nombre, coste, descripcion) VALUES (?, ?, ?)";
+        return DatabaseHelper.executeUpdate(sql, item.getNombre(), item.getCoste(), item.getDescripcion());
     }
 
     public boolean deleteItem(int id) {
-        String sql = "DELETE FROM tienda_items WHERE id = ?";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setInt(1, id);
-            return stmt.executeUpdate() > 0;
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
-        }
+        String sql = "DELETE FROM " + TABLE_NAME + " WHERE id = ?";
+        return DatabaseHelper.executeUpdate(sql, id);
     }
 }

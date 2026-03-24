@@ -45,9 +45,21 @@ public class RegisterController {
         String password = txtPassword.getText();
         String confirmPassword = txtConfirmPassword.getText();
 
-        // Verificar que no haya campos vacíos
-        if (nombre.isEmpty() || email.isEmpty() || password.isEmpty()) {
+        // Verificar que no haya campos vacíos y formatos correctos
+        if (!com.example.aedusapp.utils.DataValidator.isNotEmpty(nombre) || 
+            !com.example.aedusapp.utils.DataValidator.isNotEmpty(email) || 
+            !com.example.aedusapp.utils.DataValidator.isNotEmpty(password)) {
             lblError.setText("Por favor, rellena todos los campos.");
+            return;
+        }
+
+        if (!com.example.aedusapp.utils.DataValidator.isValidEmail(email)) {
+            lblError.setText("El formato del email no es válido.");
+            return;
+        }
+
+        if (password.length() < 6) {
+            lblError.setText("La contraseña debe tener al menos 6 caracteres.");
             return;
         }
 
@@ -57,8 +69,7 @@ public class RegisterController {
             return;
         }
 
-        // Crear el nuevo usuario (ID null para insert, Rol 2 = usuario
-        // estándar/profesor, Estado = PENDING)
+        // Crear el nuevo usuario
         Usuario newUser = new Usuario(null, nombre, email, password, "PENDING", 2);
 
         // Intentar guardar en base de datos

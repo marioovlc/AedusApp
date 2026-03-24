@@ -1,9 +1,7 @@
 package com.example.aedusapp.controllers.incidencias;
 
-import com.example.aedusapp.database.daos.IncidenciaDAO;
 import com.example.aedusapp.models.Incidencia;
 import com.example.aedusapp.models.Usuario;
-import com.example.aedusapp.services.logging.LogService;
 
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -11,8 +9,6 @@ import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
 import javafx.stage.FileChooser;
@@ -20,7 +16,6 @@ import javafx.stage.Stage;
 
 
 import java.io.File;
-import java.text.SimpleDateFormat;
 import java.util.List;
 
 public class IncidenciasController {
@@ -40,10 +35,7 @@ public class IncidenciasController {
     @FXML private javafx.scene.control.ProgressIndicator aiSpinner;
     @FXML private Button btnSugerirIA;
 
-    private IncidenciaDAO incidenciaDAO;
-    private com.example.aedusapp.database.daos.AulaDAO aulaDAO;
-    private final com.example.aedusapp.database.daos.ConocimientoDAO conocimientoDAO = new com.example.aedusapp.database.daos.ConocimientoDAO();
-    private final com.example.aedusapp.database.daos.MisionesDAO misionesDAO = new com.example.aedusapp.database.daos.MisionesDAO();
+    private final com.example.aedusapp.services.IncidenciasService incidenciasService = new com.example.aedusapp.services.IncidenciasService();
     private File imagenSeleccionada;
     private Usuario usuarioActual;
 
@@ -55,9 +47,6 @@ public class IncidenciasController {
 
 
     public void initialize() {
-        incidenciaDAO = new IncidenciaDAO();
-        aulaDAO = new com.example.aedusapp.database.daos.AulaDAO();
-
         // Cargar categorias hardcodeadas por ahora o de BD
         categoriaCombo.getItems().addAll("Hardware", "Software", "Conectividad", "Mobiliario");
 
@@ -78,7 +67,7 @@ public class IncidenciasController {
         javafx.concurrent.Task<String[]> task = new javafx.concurrent.Task<>() {
             @Override
             protected String[] call() {
-                return conocimientoDAO.buscarArticuloSimilar(text);
+                return incidenciasService.buscarSugerenciaFAQ(text);
             }
         };
         task.setOnSucceeded(e -> {
@@ -97,7 +86,7 @@ public class IncidenciasController {
                 });
             }
         });
-        new Thread(task).start();
+        com.example.aedusapp.utils.ConcurrencyManager.submit(task);
     }
 
     private void configurarDragAndDrop() {
@@ -171,17 +160,7 @@ public class IncidenciasController {
         javafx.concurrent.Task<String> task = new javafx.concurrent.Task<>() {
             @Override
             protected String call() throws Exception {
-                // Build a focused tech-support prompt — NO DB context passed
-                String systemPrompt =
-                    "Eres un asistente técnico de soporte IT para un centro educativo. " +
-                    "El usuario va a describir un problema técnico. " +
-                    "Tu misión es dar pasos concretos y prácticos para que el profesor RESUELVA EL PROBLEMA POR SÍ MISMO sin necesidad de abrir un ticket de soporte. " +
-                    "Responde SIEMPRE en español. Sé breve y usa viñetas (•) para los pasos. " +
-                    "No menciones incidencias anteriores ni bases de datos. Solo responde al problema descrito.";
-
-                String userMsg = "Tengo este problema técnico en el aula:\n\"" + consulta + "\"\n\n¿Cómo puedo solucionarlo?";
-
-                return new com.example.aedusapp.services.ai.AIService().askAI(userMsg, systemPrompt);
+                return incidenciasService.pedirSugerenciaIA(consulta);
             }
         };
         task.setOnSucceeded(e -> Platform.runLater(() -> {
@@ -194,13 +173,18 @@ public class IncidenciasController {
             aiSpinner.setVisible(false);
             aiSpinner.setManaged(false);
             btnSugerirIA.setDisable(false);
-            lblSugerenciaIA.setText("⚠️ No se pudo conectar con la IA: " + task.getException().getMessage());
+            Throwable ex = task.getException();
+            if (ex instanceof com.example.aedusapp.exceptions.AIException) {
+                lblSugerenciaIA.setText("⚠️ No se pudo obtener sugerencia de la IA. Inténtalo de nuevo.");
+            } else {
+                lblSugerenciaIA.setText("⚠️ Error inesperado: " + ex.getMessage());
+            }
         }));
-        new Thread(task).start();
+        com.example.aedusapp.utils.ConcurrencyManager.submit(task);
     }
 
     private void cargarAulas() {
-        List<com.example.aedusapp.models.Aula> aulas = aulaDAO.getAll();
+        List<com.example.aedusapp.models.Aula> aulas = incidenciasService.obtenerAulas();
         aulaCombo.getItems().setAll(aulas);
     }
 
@@ -244,7 +228,7 @@ public class IncidenciasController {
 
         result.ifPresent(newAula -> {
             if (newAula.getNombre() != null && !newAula.getNombre().trim().isEmpty()) {
-                if(aulaDAO.create(newAula)) {
+                if(incidenciasService.crearAula(newAula)) {
                     cargarAulas();
                     // Seleccionar la nueva aula
                     for(com.example.aedusapp.models.Aula a : aulaCombo.getItems()) {
@@ -254,11 +238,10 @@ public class IncidenciasController {
                         }
                     }
                 } else {
-                    Alert alert = new Alert(Alert.AlertType.ERROR);
-                    alert.setTitle("Error");
-                    alert.setHeaderText("No se pudo crear el aula");
-                    alert.setContentText("Verifique que el nombre no exista ya.");
-                    alert.showAndWait();
+                    org.controlsfx.control.Notifications.create()
+                            .title("Error")
+                            .text("No se pudo crear el aula. Verifique que el nombre no exista ya.")
+                            .showError();
                 }
             }
         });
@@ -303,8 +286,7 @@ public class IncidenciasController {
         javafx.concurrent.Task<List<Incidencia>> task = new javafx.concurrent.Task<>() {
             @Override
             protected List<Incidencia> call() throws Exception {
-                return incidenciaDAO.getTicketsByUserPaginated(usuarioActual.getId(), PAGE_SIZE,
-                        currentOffset);
+                return incidenciasService.obtenerIncidencias(usuarioActual.getId(), PAGE_SIZE, currentOffset);
             }
         };
 
@@ -330,7 +312,8 @@ public class IncidenciasController {
                 incidenciasContainer.getChildren().add(emptyState);
             } else {
                 for (Incidencia inc : incidencias) {
-                    incidenciasContainer.getChildren().add(crearTarjetaIncidencia(inc));
+                    com.example.aedusapp.components.TarjetaIncidencia tarjeta = new com.example.aedusapp.components.TarjetaIncidencia(inc, this::eliminarIncidencia, this::mostrarImagenCompleta);
+                    incidenciasContainer.getChildren().add(tarjeta);
                 }
 
                 // Si hemos cargado una página completa, asumimos que puede haber más (o justo
@@ -361,122 +344,10 @@ public class IncidenciasController {
                 incidenciasContainer.getChildren().add(loadMoreButton);
         });
 
-        new Thread(task).start();
+        com.example.aedusapp.utils.ConcurrencyManager.submit(task);
     }
 
-    private VBox crearTarjetaIncidencia(Incidencia inc) {
-        String catColor = getCategoryColor(inc.getCategoriaNombre());
-        String catIcon = getCategoryIcon(inc.getCategoriaNombre());
 
-        VBox card = new VBox(14);
-        card.getStyleClass().add("incidencia-card");
-        // Borde izquierdo del color de la categoría (dinámico por categoría, se mantiene inline)
-        String borderStyle = "-fx-border-width: 0 0 0 4; -fx-border-radius: 14 0 0 14; -fx-border-color: " + catColor + ";";
-        card.setStyle(borderStyle);
-        card.setOnMouseEntered(e -> card.setStyle(borderStyle));
-        card.setOnMouseExited(e -> card.setStyle(borderStyle));
-
-        // ── Cabecera: ID + Título + Badge estado ──
-        HBox header = new HBox(10);
-        header.setAlignment(Pos.CENTER_LEFT);
-
-        Label idLabel = new Label("#" + inc.getId());
-        idLabel.setStyle(
-                "-fx-font-size: 11px; -fx-text-fill: " + catColor + "; -fx-font-weight: bold; -fx-opacity: 0.8;");
-
-        Label titulo = new Label(inc.getTitulo());
-        titulo.getStyleClass().add("incidencia-titulo");
-        HBox.setHgrow(titulo, Priority.ALWAYS);
-
-        Label estadoBadge = new Label(getEstadoEmoji(inc.getEstado()) + " " + inc.getEstado());
-        estadoBadge.getStyleClass().addAll("estado-badge", getEstadoClass(inc.getEstado()));
-
-        header.getChildren().addAll(idLabel, titulo, estadoBadge);
-
-        // ── Chips de metadata ──
-        HBox chips = new HBox(8);
-        chips.setAlignment(Pos.CENTER_LEFT);
-
-        if (inc.getCategoriaNombre() != null) {
-            chips.getChildren().add(crearChip(catIcon + " " + inc.getCategoriaNombre(), catColor));
-        }
-        if (inc.getAulaNombre() != null) {
-            String aula = "🚪 Aula " + inc.getAulaNombre();
-            if (inc.getAulaTipo() != null && !inc.getAulaTipo().isEmpty())
-                aula += "  " + inc.getAulaTipo();
-            chips.getChildren().add(crearChip(aula, "#64748b"));
-        }
-        if (inc.getFechaCreacion() != null) {
-            String fecha = new SimpleDateFormat("dd MMM yyyy, HH:mm").format(inc.getFechaCreacion());
-            chips.getChildren().add(crearChip("📅 " + fecha, "#475569"));
-        }
-
-        // ── Descripción ──
-        Label desc = new Label(inc.getDescripcion());
-        desc.setWrapText(true);
-        desc.getStyleClass().add("incidencia-descripcion");
-        desc.setMaxHeight(72);
-
-        // ── Resolución y Botón Borrar ──
-        VBox footer = new VBox(8);
-        if ("ACABADO".equalsIgnoreCase(inc.getEstado()) && inc.getResolucion() != null && !inc.getResolucion().isEmpty()) {
-            VBox resolucionBox = new VBox(4);
-            resolucionBox.getStyleClass().add("resolucion-box");
-            Label lblResTitulo = new Label("✅ Resolución:");
-            lblResTitulo.getStyleClass().add("resolucion-titulo");
-            Label lblResCuerpo = new Label(inc.getResolucion());
-            lblResCuerpo.setWrapText(true);
-            lblResCuerpo.getStyleClass().add("resolucion-cuerpo");
-            resolucionBox.getChildren().addAll(lblResTitulo, lblResCuerpo);
-            footer.getChildren().add(resolucionBox);
-
-            // Botón de borrado
-            Button btnBorrar = new Button("Borrar Ticket / Archivar");
-            btnBorrar.setMaxWidth(Double.MAX_VALUE);
-            btnBorrar.getStyleClass().addAll("action-button", "danger");
-            btnBorrar.setOnAction(e -> eliminarIncidencia(inc.getId()));
-            footer.getChildren().add(btnBorrar);
-        }
-
-
-        // ── Imagen miniatura ──
-        HBox imagenContainer = new HBox();
-        if (inc.getImagenRuta() != null && !inc.getImagenRuta().isEmpty()) {
-            try {
-                String ruta = inc.getImagenRuta();
-                Image img;
-                if (ruta.startsWith("http")) {
-                    img = new Image(ruta, 110, 110, true, true, true);
-                } else {
-                    File imgFile = new File(ruta);
-                    if (imgFile.exists()) {
-                        img = new Image(imgFile.toURI().toString(), 110, 110, true, true, true);
-                    } else {
-                        img = null;
-                    }
-                }
-                
-                if (img != null) {
-                    ImageView imgView = new ImageView(img);
-                    imgView.getStyleClass().add("imagen-miniatura");
-                    imgView.setFitWidth(110);
-                    imgView.setFitHeight(110);
-                    imgView.setPreserveRatio(true);
-                    imgView.setOnMouseClicked(e -> mostrarImagenCompleta(inc.getImagenRuta()));
-                    Label imgLbl = new Label("📎 Adjunto");
-                    imgLbl.setStyle("-fx-text-fill: #475569; -fx-font-size: 11px;");
-                    imagenContainer.getChildren().add(new VBox(4, imgLbl, imgView));
-                }
-            } catch (Exception ignored) {
-            }
-        }
-
-        // ── Stepper visual ──
-        HBox stepper = crearStepperVisual(inc.getEstado(), catColor);
-
-        card.getChildren().addAll(header, chips, desc, imagenContainer, footer, stepper);
-        return card;
-    }
 
     private void eliminarIncidencia(int id) {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
@@ -486,13 +357,13 @@ public class IncidenciasController {
 
         alert.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
-                if (incidenciaDAO.deleteTicket(id)) {
+                if (incidenciasService.borrarIncidencia(id)) {
                     cargarIncidencias();
                 } else {
-                    Alert error = new Alert(Alert.AlertType.ERROR);
-                    error.setTitle("Error");
-                    error.setContentText("No se pudo eliminar la incidencia.");
-                    error.show();
+                    org.controlsfx.control.Notifications.create()
+                            .title("Error")
+                            .text("No se pudo eliminar la incidencia.")
+                            .showError();
                 }
             }
         });
@@ -500,162 +371,7 @@ public class IncidenciasController {
 
 
 
-    /** Crea un chip/pill con fondo semitransparente del color dado */
-    private Label crearChip(String texto, String color) {
-        Label chip = new Label(texto);
-        chip.setStyle(
-                "-fx-background-color: " + hexToRgba(color, 0.12) + ";" +
-                        "-fx-text-fill: " + color + ";" +
-                        "-fx-font-size: 11px;" +
-                        "-fx-font-weight: bold;" +
-                        "-fx-padding: 4 10;" +
-                        "-fx-background-radius: 20;" +
-                        "-fx-border-color: " + hexToRgba(color, 0.3) + ";" +
-                        "-fx-border-radius: 20;" +
-                        "-fx-border-width: 1;");
-        return chip;
-    }
 
-    /** Convierte hex a rgba string para JavaFX inline style */
-    private String hexToRgba(String hex, double alpha) {
-        try {
-            hex = hex.replace("#", "");
-            int r = Integer.parseInt(hex.substring(0, 2), 16);
-            int g = Integer.parseInt(hex.substring(2, 4), 16);
-            int b = Integer.parseInt(hex.substring(4, 6), 16);
-            return "rgba(" + r + "," + g + "," + b + "," + alpha + ")";
-        } catch (Exception e) {
-            return "rgba(100,116,139,0.15)";
-        }
-    }
-
-    /** Stepper visual con círculos y líneas de conexión */
-    private HBox crearStepperVisual(String estadoActual, String accentColor) {
-        HBox stepper = new HBox(0);
-        stepper.setAlignment(Pos.CENTER_LEFT);
-        stepper.setStyle("-fx-padding: 10 0 0 0;");
-
-        String[] pasos = { "LEIDO", "EN REVISION", "ACABADO" };
-        String[] etiquetas = { "Leído", "En Revisión", "Acabado" };
-        boolean passed = true;
-
-        // NO LEIDO = ningún paso completado
-        if ("NO LEIDO".equalsIgnoreCase(estadoActual))
-            passed = false;
-
-        for (int i = 0; i < pasos.length; i++) {
-            boolean isActive = pasos[i].equalsIgnoreCase(estadoActual);
-            boolean isDone = passed && !isActive;
-
-            // Círculo del paso
-            javafx.scene.layout.StackPane circulo = new javafx.scene.layout.StackPane();
-            circulo.setMinSize(22, 22);
-            circulo.setMaxSize(22, 22);
-
-            if (isActive) {
-                circulo.setStyle("-fx-background-color: " + accentColor
-                        + "; -fx-background-radius: 11; -fx-effect: dropshadow(gaussian," + hexToRgba(accentColor, 0.5)
-                        + ",8,0,0,0);");
-                Label check = new Label("●");
-                check.setStyle("-fx-text-fill: white; -fx-font-size: 10px;");
-                circulo.getChildren().add(check);
-            } else if (isDone) {
-                circulo.setStyle("-fx-background-color: " + hexToRgba(accentColor, 0.3)
-                        + "; -fx-background-radius: 11; -fx-border-color: " + accentColor
-                        + "; -fx-border-radius: 11; -fx-border-width: 1;");
-                Label check = new Label("✓");
-                check.setStyle("-fx-text-fill: " + accentColor + "; -fx-font-size: 10px; -fx-font-weight: bold;");
-                circulo.getChildren().add(check);
-            } else {
-                circulo.getStyleClass().add("stepper-circle-inactive");
-            }
-
-            // Etiqueta del paso
-            Label lbl = new Label(etiquetas[i]);
-            lbl.setStyle("-fx-font-size: 10px; -fx-padding: 0 0 0 4;");
-            if (isActive) {
-                lbl.setStyle(lbl.getStyle() + "-fx-text-fill: " + accentColor + "; -fx-font-weight: bold;");
-            } else if (isDone) {
-                lbl.getStyleClass().add("stepper-label-done");
-            } else {
-                lbl.getStyleClass().add("stepper-label-inactive");
-            }
-
-            VBox paso = new VBox(3);
-            paso.setAlignment(Pos.CENTER);
-            paso.getChildren().addAll(circulo, lbl);
-
-            stepper.getChildren().add(paso);
-
-            // Línea de conexión entre pasos
-            if (i < pasos.length - 1) {
-                javafx.scene.control.Separator linea = new javafx.scene.control.Separator();
-                linea.setPrefWidth(40);
-                if (isDone) {
-                    linea.setStyle("-fx-background-color: " + accentColor + "; -fx-padding: 0 6;");
-                } else {
-                    linea.getStyleClass().add("stepper-line-inactive");
-                    linea.setStyle("-fx-padding: 0 6;");
-                }
-                linea.setValignment(javafx.geometry.VPos.CENTER);
-                HBox.setHgrow(linea, Priority.SOMETIMES);
-                javafx.scene.layout.HBox lineBox = new javafx.scene.layout.HBox(linea);
-                lineBox.setAlignment(Pos.CENTER);
-                lineBox.setPrefHeight(22);
-                lineBox.setStyle("-fx-padding: 0 4;");
-                stepper.getChildren().add(lineBox);
-            }
-
-            if (isActive)
-                passed = false;
-        }
-
-        return stepper;
-    }
-
-    private String getEstadoClass(String estado) {
-        return switch (estado.toUpperCase()) {
-            case "NO LEIDO" -> "no-leido";
-            case "LEIDO" -> "leido";
-            case "EN REVISION" -> "en-revision";
-            case "ACABADO" -> "acabado";
-            default -> "";
-        };
-    }
-
-    private String getEstadoEmoji(String estado) {
-        return switch (estado.toUpperCase()) {
-            case "NO LEIDO" -> "🔴";
-            case "LEIDO" -> "🔵";
-            case "EN REVISION" -> "🟡";
-            case "ACABADO" -> "🟢";
-            default -> "⚪";
-        };
-    }
-
-    private String getCategoryColor(String categoria) {
-        if (categoria == null)
-            return "#64748b";
-        return switch (categoria.toLowerCase()) {
-            case "hardware" -> "#fb923c";
-            case "software" -> "#60a5fa";
-            case "conectividad" -> "#22d3ee";
-            case "mobiliario" -> "#34d399";
-            default -> "#818cf8";
-        };
-    }
-
-    private String getCategoryIcon(String categoria) {
-        if (categoria == null)
-            return "📌";
-        return switch (categoria.toLowerCase()) {
-            case "hardware" -> "🔧";
-            case "software" -> "💻";
-            case "conectividad" -> "📡";
-            case "mobiliario" -> "🪑";
-            default -> "📌";
-        };
-    }
 
     private void mostrarImagenCompleta(String imagenRuta) {
         try {
@@ -723,14 +439,11 @@ public class IncidenciasController {
         }
 
         int aulaId = aulaSeleccionada.getId();
-        int catId = 1; // Default ID
-        if (catNombre != null) {
-             switch (catNombre.toLowerCase()) {
-                case "hardware": catId = 1; break;
-                case "software": catId = 2; break;
-                case "conectividad": catId = 3; break;
-                case "mobiliario": catId = 4; break;
-            }
+        int catId;
+        try {
+            catId = com.example.aedusapp.models.CategoriaIncidencia.fromNombre(catNombre).getId();
+        } catch (Exception ex) {
+            catId = 1; // Fallback por defecto: Hardware
         }
 
         String aulaTipo = aulaSeleccionada.getTipo();
@@ -748,26 +461,13 @@ public class IncidenciasController {
         javafx.concurrent.Task<Boolean> task = new javafx.concurrent.Task<>() {
             @Override
             protected Boolean call() {
-                // Manejar imagen adjunta si existe
                 if (imagenSeleccionada != null) {
                     javafx.application.Platform.runLater(() -> {
-                        statusLabel.setText("Subiendo imagen a la nube...");
+                        statusLabel.setText("Subiendo imagen a la nube y creando incidencia...");
                         statusLabel.setStyle("-fx-text-fill: #3b82f6;");
                     });
-                    String url = com.example.aedusapp.services.media.PostImagesService.uploadImage(imagenSeleccionada);
-                    if (url != null) {
-                        nueva.setImagenRuta(url);
-                    } else {
-                        throw new RuntimeException("Error al subir imagen a Cloudinary.");
-                    }
                 }
-
-                if (incidenciaDAO.createTicket(nueva)) {
-                    // Registrar en el sistema de logs
-                    LogService.logCrearIncidencia(usuarioActual, 0, titulo); // ID será asignado por BD
-                    return true;
-                }
-                return false;
+                return incidenciasService.crearIncidenciaCompleta(nueva, usuarioActual, imagenSeleccionada);
             }
         };
 
@@ -778,7 +478,7 @@ public class IncidenciasController {
                 statusLabel.setStyle("-fx-text-fill: green;");
                 
                 // Misión Diaria
-                boolean misionCompletada = misionesDAO.registrarMisionDiaria(usuarioActual.getId(), "CREAR_TICKET", 10);
+                boolean misionCompletada = incidenciasService.verificarYOtorgarMisionDiaria(usuarioActual.getId());
                 if (misionCompletada) {
                     com.example.aedusapp.utils.ui.AlertUtils.showAlert(javafx.scene.control.Alert.AlertType.INFORMATION, "¡Misión Cumplida!", "+10 Aedus por crear tu primer ticket de hoy.");
                 }
@@ -803,6 +503,6 @@ public class IncidenciasController {
             statusLabel.setStyle("-fx-text-fill: red;");
         });
 
-        new Thread(task).start();
+        com.example.aedusapp.utils.ConcurrencyManager.submit(task);
     }
 }

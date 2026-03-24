@@ -75,6 +75,14 @@ public class AppConfig {
         return Integer.parseInt(getEnv("APP_HEIGHT", "400"));
     }
 
+    public static String getSplashPath() {
+        return getEnv("APP_SPLASH_PATH", "/com/example/aedusapp/views/general/splash_screen.fxml");
+    }
+
+    public static String getIconPath() {
+        return getEnv("APP_ICON_PATH", "/com/example/aedusapp/images/logo.png");
+    }
+
     // --- MÉTODOS DE APOYO ---
     private static String getEnv(String key, String defaultValue) {
         String value = dotenv.get(key);

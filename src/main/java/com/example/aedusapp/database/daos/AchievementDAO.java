@@ -1,14 +1,18 @@
 package com.example.aedusapp.database.daos;
 
 import com.example.aedusapp.database.config.DBConnection;
-import com.example.aedusapp.models.Achievement;
+import com.example.aedusapp.database.config.DatabaseHelper;
 import com.example.aedusapp.exceptions.DatabaseException;
+import com.example.aedusapp.models.Achievement;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.sql.*;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 public class AchievementDAO {
+    private static final Logger logger = LoggerFactory.getLogger(AchievementDAO.class);
 
     // --- SQL CONSTANTS ---
     private static final String CREATE_TABLE_ACHIEVEMENT = 
@@ -37,6 +41,13 @@ public class AchievementDAO {
                      "JOIN neon_auth.user_achievement ua ON a.id = ua.achievement_id " +
                      "WHERE ua.user_id = ?";
 
+    private static final DatabaseHelper.RowMapper<Achievement> ACHIEVEMENT_MAPPER = rs -> new Achievement(
+            rs.getString("id"),
+            rs.getString("title"),
+            rs.getString("description"),
+            rs.getInt("reward"),
+            rs.getString("icon_path")
+    );
 
     public void initAchievementTables() {
         try (Connection conn = DBConnection.getConnection();
@@ -45,9 +56,12 @@ public class AchievementDAO {
             stmt.executeUpdate(CREATE_TABLE_ACHIEVEMENT);
             stmt.executeUpdate(CREATE_TABLE_USER_ACHIEVEMENT);
             insertDefaultAchievements(conn);
+            logger.info("Tablas de logros inicializadas.");
 
         } catch (SQLException e) {
-            throw new DatabaseException("Error inicializando tablas de logros", e);
+            String msg = "Error inicializando tablas de logros";
+            logger.error(msg, e);
+            throw new DatabaseException(msg, e);
         }
     }
 
@@ -95,7 +109,7 @@ public class AchievementDAO {
                             grantStmt.setObject(2, achievementId);
                             int rows = grantStmt.executeUpdate();
 
-                            if (rows > 0) { // If it was a new achievement for the user, update coins
+                            if (rows > 0) { // Nuevo logro para el user
                                 try (PreparedStatement coinStmt = conn.prepareStatement(UPDATE_USER_COINS)) {
                                     coinStmt.setInt(1, reward);
                                     coinStmt.setObject(2, UUID.fromString(userId));
@@ -110,35 +124,17 @@ public class AchievementDAO {
             return true;
         } catch (SQLException e) {
             if (conn != null) {
-                try { conn.rollback(); } catch (SQLException ex) { ex.printStackTrace(); }
+                try { conn.rollback(); } catch (SQLException ex) { logger.error("Error rollback", ex); }
             }
             throw new DatabaseException("Error otorgando el logro: " + achievementTitle, e);
         } finally {
             if (conn != null) {
-                try { conn.setAutoCommit(true); conn.close(); } catch (SQLException e) { e.printStackTrace(); }
+                try { conn.setAutoCommit(true); conn.close(); } catch (SQLException e) { logger.error("Error close", e); }
             }
         }
     }
 
     public List<Achievement> getUserAchievements(String userId) {
-        List<Achievement> list = new ArrayList<>();
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(GET_USER_ACHIEVEMENTS)) {
-            stmt.setObject(1, UUID.fromString(userId));
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    list.add(new Achievement(
-                            rs.getString("id"),
-                            rs.getString("title"),
-                            rs.getString("description"),
-                            rs.getInt("reward"),
-                            rs.getString("icon_path")
-                    ));
-                }
-            }
-        } catch (SQLException e) {
-            throw new DatabaseException("Error obteniendo logros del usuario", e);
-        }
-        return list;
+        return DatabaseHelper.queryForList(GET_USER_ACHIEVEMENTS, ACHIEVEMENT_MAPPER, UUID.fromString(userId));
     }
 }

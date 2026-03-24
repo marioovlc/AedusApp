@@ -1,0 +1,42 @@
+<configuration>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       APPENDER: CONSOLA (coloreada para desarrollo)
+       ═══════════════════════════════════════════════════════════ -->
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{HH:mm:ss.SSS} %highlight(%-5level) [%cyan(%logger{36})] - %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       APPENDER: ARCHIVO (rotación diaria, máx 30 días)
+       ═══════════════════════════════════════════════════════════ -->
+  <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>logs/aedusapp.log</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>logs/aedusapp.%d{yyyy-MM-dd}.log</fileNamePattern>
+      <maxHistory>30</maxHistory>
+    </rollingPolicy>
+    <encoder>
+      <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%logger{36}] - %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       NIVELES DE LOG POR PAQUETE
+       ═══════════════════════════════════════════════════════════ -->
+
+  <!-- Reducir el ruido de HikariCP (sólo WARN y superiores) -->
+  <logger name="com.zaxxer.hikari" level="WARN"/>
+
+  <!-- Logs de la aplicación a nivel DEBUG en desarrollo -->
+  <logger name="com.example.aedusapp" level="DEBUG"/>
+
+  <!-- ROOT: nivel INFO general -->
+  <root level="INFO">
+    <appender-ref ref="STDOUT"/>
+    <appender-ref ref="FILE"/>
+  </root>
+
+</configuration>

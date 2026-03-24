@@ -1,6 +1,7 @@
 package com.example.aedusapp.database.config;
 
 import com.example.aedusapp.database.daos.*;
+import com.example.aedusapp.utils.config.AppConfig;
 
 import java.sql.Connection;
 import java.sql.Statement;
@@ -17,15 +18,18 @@ public class DatabaseSetup {
             
             logger.info("Initializing Database Schema...");
 
-            // Ensure schema exists
-            stmt.executeUpdate("CREATE SCHEMA IF NOT EXISTS gestion_incidencias");
-            stmt.executeUpdate("SET search_path TO gestion_incidencias, public, neon_auth");
+            // Ensure schema exists dynamically based on AppConfig DB_SCHEMA
+            String primarySchema = AppConfig.getDbSchema().split(",")[0].trim();
+            stmt.executeUpdate("CREATE SCHEMA IF NOT EXISTS " + primarySchema);
+            stmt.executeUpdate("SET search_path TO " + AppConfig.getDbSchema());
 
             // Initialize tables using DAOs
-            new MensajeDAO().createTable();
+            new MensajeDAO(new AchievementDAO()).createTable();
             new LogDAO().createTable();
             new AchievementDAO().initAchievementTables();
             new TiendaDAO().createTable();
+            new ConocimientoDAO().createTable();
+            new MisionesDAO().createTable();
             
             // --- MIGRACIONES DE ESQUEMA ---
 
@@ -94,6 +98,53 @@ public class DatabaseSetup {
             try {
                 stmt.executeUpdate("ALTER TABLE incidencias ADD COLUMN IF NOT EXISTS resolucion TEXT");
             } catch (Exception e) { logger.debug("Columna resolucion omitida en incidencias"); }
+
+            // Optimizaciones de Rendimiento del Chat (Triggers e Índices)
+            try {
+                stmt.executeUpdate("ALTER TABLE incidencias ADD COLUMN IF NOT EXISTS ultima_actividad TIMESTAMP DEFAULT NOW()");
+                
+                // Trigger para mantener ultima_actividad sincronizado sin GROUP BYs costosos
+                stmt.executeUpdate(
+                    "CREATE OR REPLACE FUNCTION trg_actualizar_actividad_ticket() RETURNS TRIGGER AS $$ " +
+                    "BEGIN " +
+                    "   IF NEW.incidencia_id IS NOT NULL THEN " +
+                    "       UPDATE incidencias SET ultima_actividad = NEW.fecha WHERE id = NEW.incidencia_id; " +
+                    "   END IF; " +
+                    "   RETURN NEW; " +
+                    "END; $$ LANGUAGE plpgsql;"
+                );
+                stmt.executeUpdate("DROP TRIGGER IF EXISTS trg_actualizar_actividad_ticket ON mensajes");
+                stmt.executeUpdate(
+                    "CREATE TRIGGER trg_actualizar_actividad_ticket " +
+                    "AFTER INSERT ON mensajes FOR EACH ROW EXECUTE FUNCTION trg_actualizar_actividad_ticket();"
+                );
+
+                // Índices críticos para el HubData
+                stmt.executeUpdate("CREATE INDEX IF NOT EXISTS idx_mensajes_incidencia_id ON mensajes(incidencia_id)");
+                stmt.executeUpdate("CREATE INDEX IF NOT EXISTS idx_mensajes_leido ON mensajes(incidencia_id, leido)");
+                stmt.executeUpdate("CREATE INDEX IF NOT EXISTS idx_mensajes_incidencia_fecha ON mensajes(incidencia_id, fecha DESC)");
+            } catch (Exception e) {
+                logger.error("Error aplicando triggers/índices de metadatos de chat: {}", e.getMessage(), e);
+            }
+
+            // 3. User Deletion Cascading Fixes
+            try {
+                // Incidencias -> User
+                stmt.executeUpdate("ALTER TABLE incidencias DROP CONSTRAINT IF EXISTS incidencias_usuario_id_fkey");
+                stmt.executeUpdate("ALTER TABLE incidencias ADD CONSTRAINT incidencias_usuario_id_fkey FOREIGN KEY (usuario_id) REFERENCES neon_auth.user(id) ON DELETE CASCADE");
+
+                // Mensajes -> User (Sender)
+                stmt.executeUpdate("ALTER TABLE mensajes DROP CONSTRAINT IF EXISTS mensajes_usuario_id_fkey");
+                stmt.executeUpdate("ALTER TABLE mensajes ADD CONSTRAINT mensajes_usuario_id_fkey FOREIGN KEY (usuario_id) REFERENCES neon_auth.user(id) ON DELETE CASCADE");
+
+                // Mensajes -> User (Receiver)
+                stmt.executeUpdate("ALTER TABLE mensajes DROP CONSTRAINT IF EXISTS mensajes_receptor_id_fkey");
+                stmt.executeUpdate("ALTER TABLE mensajes ADD CONSTRAINT mensajes_receptor_id_fkey FOREIGN KEY (receptor_id) REFERENCES neon_auth.user(id) ON DELETE CASCADE");
+
+                logger.info("Migración de borrado en cascada aplicada con éxito.");
+            } catch (Exception e) {
+                logger.warn("Aviso en migración de cascada (posiblemente ya aplicada): {}", e.getMessage());
+            }
 
             logger.info("Database schema initialized.");
             

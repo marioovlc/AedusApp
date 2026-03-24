@@ -7,8 +7,6 @@ import com.example.aedusapp.services.ai.AIService;
 import com.example.aedusapp.services.audio.AudioRecorderService;
 import com.example.aedusapp.services.media.PostImagesService;
 
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
@@ -18,14 +16,10 @@ import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
-import javafx.scene.shape.Circle;
 import javafx.scene.text.Text;
 import javafx.stage.FileChooser;
-import javafx.util.Duration;
-
 import java.io.File;
 import java.sql.Timestamp;
-import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class ConnectHubController {
@@ -48,13 +42,12 @@ public class ConnectHubController {
     @FXML
     private VBox itemAedusAI;
 
-    private Set<String> usuariosActivos = new HashSet<>();
-    private Timeline presenceTimeline;
+    private com.example.aedusapp.utils.hub.PresenceManager presenceManager;
 
     private List<Incidencia> todasIncidenciasCache = new ArrayList<>();
     private List<Usuario> todosUsuariosCache = new ArrayList<>();
 
-    private final com.example.aedusapp.services.hub.ConnectHubService hubService = new com.example.aedusapp.services.hub.ConnectHubService();
+    private final com.example.aedusapp.services.hub.IConnectHubService hubService = com.example.aedusapp.utils.DependencyInjector.get(com.example.aedusapp.services.hub.IConnectHubService.class);
 
     private Map<Integer, Timestamp> ticketLastActivityMap = new HashMap<>();
     private Map<String, Timestamp> userLastActivityMap = new HashMap<>();
@@ -235,7 +228,7 @@ public class ConnectHubController {
 
                     Region dot = new Region();
                     dot.getStyleClass().add("presence-dot");
-                    if (usuariosActivos.contains(item.getId()))
+                    if (presenceManager != null && presenceManager.getUsuariosActivos().contains(item.getId()))
                         dot.getStyleClass().add("online");
 
                     VBox info = new VBox(2);
@@ -288,7 +281,10 @@ public class ConnectHubController {
         paneDetalleTicket.setVisible(true);
         paneDetalleUsuario.setVisible(false);
 
-        iniciarPingPresencia();
+        presenceManager = new com.example.aedusapp.utils.hub.PresenceManager(hubService, activos -> {
+            listaUsuarios.refresh();
+            listaTickets.refresh();
+        });
         configurarDragAndDrop();
     }
 
@@ -341,7 +337,7 @@ public class ConnectHubController {
                                     lblChatStatus.setText("En línea");
                                     loadChatHistory();
                                 });
-                                new Thread(uploadTask).start();
+                                com.example.aedusapp.utils.ConcurrencyManager.submit(uploadTask);
                                 break;
                             }
                         }
@@ -354,38 +350,8 @@ public class ConnectHubController {
     }
 
     private void iniciarPingPresencia() {
-        if (presenceTimeline != null)
-            presenceTimeline.stop();
-
-        presenceTimeline = new Timeline(new KeyFrame(Duration.seconds(20), e -> {
-            if (usuarioActual != null) {
-                Task<Void> pingTask = new Task<>() {
-                    @Override
-                    protected Void call() {
-                        hubService.updateUserPresence(usuarioActual.getId());
-                        List<String> activos = hubService.getRecentlyActiveUsers(45);
-                        Platform.runLater(() -> {
-                            usuariosActivos.clear();
-                            usuariosActivos.addAll(activos);
-                            usuariosActivos.add("system"); // AI is always online
-                            listaUsuarios.refresh();
-                            listaTickets.refresh();
-                        });
-                        return null;
-                    }
-                };
-                new Thread(pingTask).start();
-            }
-        }));
-        presenceTimeline.setCycleCount(Timeline.INDEFINITE);
-        presenceTimeline.play();
-
-        // Immediate first run
         if (usuarioActual != null) {
-            new Thread(() -> {
-                hubService.initPresenceSystem();
-                hubService.updateUserPresence(usuarioActual.getId());
-            }).start();
+            presenceManager.start(usuarioActual);
         }
     }
 
@@ -393,20 +359,14 @@ public class ConnectHubController {
     private void mostrarPestanaTickets() {
         btnTabTickets.getStyleClass().add("active");
         btnTabPersonas.getStyleClass().remove("active");
-        boxListaTickets.setVisible(true);
-        boxListaTickets.setManaged(true);
-        boxListaPersonas.setVisible(false);
-        boxListaPersonas.setManaged(false);
+        com.example.aedusapp.utils.ui.TransitionUtils.switchViews(boxListaPersonas, boxListaTickets);
     }
 
     @FXML
     private void mostrarPestanaPersonas() {
         btnTabPersonas.getStyleClass().add("active");
         btnTabTickets.getStyleClass().remove("active");
-        boxListaPersonas.setVisible(true);
-        boxListaPersonas.setManaged(true);
-        boxListaTickets.setVisible(false);
-        boxListaTickets.setManaged(false);
+        com.example.aedusapp.utils.ui.TransitionUtils.switchViews(boxListaTickets, boxListaPersonas);
         cargarUsuarios();
     }
 
@@ -438,7 +398,7 @@ public class ConnectHubController {
             
             filtrarListas(txtBusqueda.getText());
         });
-        new Thread(task).start();
+        com.example.aedusapp.utils.ConcurrencyManager.submit(task);
     }
 
     private void filtrarListas(String term) {
@@ -477,15 +437,6 @@ public class ConnectHubController {
 
     public void setUsuarioActual(Usuario user) {
         this.usuarioActual = user;
-
-        // Show Support check if admin/mantenimiento
-        if ("ADMIN".equalsIgnoreCase(user.getRole()) || "MANTENIMIENTO".equalsIgnoreCase(user.getRole())) {
-            if (chkSoporte != null) {
-                chkSoporte.setVisible(true);
-                chkSoporte.setManaged(true);
-            }
-        }
-
         iniciarPingPresencia();
         cargarTickets();
     }
@@ -517,7 +468,7 @@ public class ConnectHubController {
             
             filtrarListas(txtBusqueda.getText());
         });
-        new Thread(task).start();
+        com.example.aedusapp.utils.ConcurrencyManager.submit(task);
     }
 
     @FXML
@@ -587,7 +538,7 @@ public class ConnectHubController {
             }
         };
         markReadTask.setOnSucceeded(e -> cargarTickets());
-        new Thread(markReadTask).start();
+        com.example.aedusapp.utils.ConcurrencyManager.submit(markReadTask);
 
         // Update Right Pane
         paneDetalleTicket.setVisible(true);
@@ -636,7 +587,7 @@ public class ConnectHubController {
         }
 
         lblChatDestino.setText(user.getNombre());
-        lblChatStatus.setText(usuariosActivos.contains(user.getId()) ? "En línea" : "Desconectado");
+        lblChatStatus.setText(presenceManager != null && presenceManager.getUsuariosActivos().contains(user.getId()) ? "En línea" : "Desconectado");
 
         // Contextual buttons
         if (chkSoporte != null) {
@@ -656,7 +607,7 @@ public class ConnectHubController {
             }
         };
         markReadTask.setOnSucceeded(e -> cargarUsuarios());
-        new Thread(markReadTask).start();
+        com.example.aedusapp.utils.ConcurrencyManager.submit(markReadTask);
 
         // Update Right Pane (Profile)
         paneDetalleTicket.setVisible(false);
@@ -688,7 +639,14 @@ public class ConnectHubController {
     private void guardarPerfilPropio() {
         if (usuarioDestino == null) return;
 
-        usuarioDestino.setTelefono(txtPerfilTelefono.getText());
+        String tlf = txtPerfilTelefono.getText();
+        if (!com.example.aedusapp.utils.DataValidator.isValidPhone(tlf)) {
+            com.example.aedusapp.utils.ui.ToastNotification.error(btnGuardarPerfil.getScene().getWindow(), 
+                "El formato del teléfono no es válido.");
+            return;
+        }
+
+        usuarioDestino.setTelefono(tlf);
         usuarioDestino.setBio(txtPerfilBio.getText());
 
         Task<Boolean> saveTask = new Task<>() {
@@ -699,12 +657,12 @@ public class ConnectHubController {
         };
         saveTask.setOnSucceeded(e -> {
             if (saveTask.getValue()) {
-                System.out.println("Perfil actualizado con éxito.");
-                addSystemMessage("Perfil actualizado con éxito.");
-                cargarUsuarios(); // Refresh list to show online status etc
+                com.example.aedusapp.utils.ui.ToastNotification.success(btnGuardarPerfil.getScene().getWindow(), 
+                    "Perfil actualizado con éxito.");
+                cargarUsuarios();
             }
         });
-        new Thread(saveTask).start();
+        com.example.aedusapp.utils.ConcurrencyManager.submit(saveTask);
     }
 
     @FXML
@@ -878,7 +836,7 @@ public class ConnectHubController {
                 addMessageToChat(m);
             }
         });
-        new Thread(loadTask).start();
+        com.example.aedusapp.utils.ConcurrencyManager.submit(loadTask);
     }
 
     private void sendMessage() {
@@ -1034,11 +992,11 @@ public class ConnectHubController {
                         return null;
                     }
                 };
-                new Thread(saveTask).start();
+                com.example.aedusapp.utils.ConcurrencyManager.submit(saveTask);
             }
         });
 
-        new Thread(stopTask).start();
+                com.example.aedusapp.utils.ConcurrencyManager.submit(stopTask);
     }
 
     // --- Message Rendering ---
@@ -1067,177 +1025,8 @@ public class ConnectHubController {
     }
 
     private void addMessageToChat(Mensaje m) {
-        boolean isMe = m.getUsuarioId() != null && usuarioActual != null
-                && m.getUsuarioId().equals(usuarioActual.getId());
-
-        HBox row = new HBox(10);
-        row.setAlignment(isMe ? Pos.CENTER_RIGHT : Pos.CENTER_LEFT);
-
-        // Avatar
-        ImageView avatarView = new ImageView();
-        avatarView.setFitWidth(32);
-        avatarView.setFitHeight(32);
-        Circle clip = new Circle(16, 16, 16);
-        avatarView.setClip(clip);
-
-        if (m.getAvatarDatos() != null) {
-            try {
-                Image img = new Image(new java.io.ByteArrayInputStream(m.getAvatarDatos()));
-                avatarView.setImage(img);
-            } catch (Exception e) {
-            }
-        } else if ("system".equals(m.getUsuarioId())) {
-            // Render AI avatar placeholder
-            // omitted for simplicity, it defaults to empty
-        }
-
-        // Bubble
-        VBox bubble = new VBox(5);
-        bubble.getStyleClass().add("chat-bubble");
-        
-        if (m.isSoporte()) {
-            bubble.getStyleClass().add("chat-bubble-support");
-        } else {
-            bubble.getStyleClass().add(isMe ? "chat-bubble-me" : "chat-bubble-other");
-        }
-
-        if (!isMe) {
-            Label name = new Label(m.getNombre() != null ? m.getNombre() : "Usuario");
-            name.setStyle("-fx-font-size: 10px; -fx-text-fill: #64748b; -fx-font-weight: bold;");
-            bubble.getChildren().add(name);
-
-            // Mark as read in background if not system
-            if (!m.isLeido() && !"system".equals(m.getUsuarioId()) && incidenciaActual != null
-                    && usuarioActual != null) {
-                Task<Void> readTask = new Task<>() {
-                    protected Void call() {
-                        hubService.markTicketAsRead(incidenciaActual.getId(), usuarioActual.getId());
-                        return null;
-                    }
-                };
-                new Thread(readTask).start();
-            }
-        }
-
-        if (m.getTexto() != null && !m.getTexto().isEmpty()) {
-            Label txt = new Label(m.getTexto());
-            txt.setWrapText(true);
-            txt.setStyle("-fx-text-fill: #0f172a; -fx-font-size: 13px;");
-            bubble.getChildren().add(txt);
-        }
-
-        // --- Render Shared Ticket Card ---
-        if (m.getTicketLinkId() != null && m.getTicketLinkId() > 0) {
-            Task<Incidencia> ticketTask = new Task<>() {
-                @Override
-                protected Incidencia call() {
-                    return hubService.getTicketById(m.getTicketLinkId());
-                }
-            };
-            ticketTask.setOnSucceeded(ev -> {
-                Incidencia inc = ticketTask.getValue();
-                if (inc != null) {
-                    VBox ticketCard = new VBox(5);
-                    ticketCard.getStyleClass().add("shared-ticket-card");
-
-                    Label tTitle = new Label(" " + inc.getTitulo());
-                    tTitle.getStyleClass().add("shared-ticket-title");
-
-                    Label tDesc = new Label(inc.getDescripcion());
-                    tDesc.getStyleClass().add("shared-ticket-desc");
-                    tDesc.setMaxWidth(220);
-                    tDesc.setEllipsisString("...");
-
-                    ticketCard.getChildren().addAll(tTitle, tDesc);
-                    ticketCard.setOnMouseClicked(click -> seleccionarTicket(inc));
-
-                    Platform.runLater(() -> bubble.getChildren().add(1, ticketCard)); // Insert after text
-                }
-            });
-            new Thread(ticketTask).start();
-        }
-
-        if (m.getImagenUrl() != null && !m.getImagenUrl().isEmpty()) {
-            try {
-                // Ensure Image downloads asynchronously and fits within chat bubble
-                Image img = new Image(m.getImagenUrl(), 200, 0, true, true, true);
-                ImageView imgMsg = new ImageView(img);
-                imgMsg.setPreserveRatio(true);
-                imgMsg.setCursor(javafx.scene.Cursor.HAND);
-                imgMsg.setOnMouseClicked(e -> {
-                    Dialog<Void> dialog = new Dialog<>();
-                    dialog.setTitle("Visor de Imagen");
-                    dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-
-                    ImageView fullImgView = new ImageView(m.getImagenUrl());
-                    fullImgView.setPreserveRatio(true);
-
-                    // Adjust to screen if too big
-                    double screenWidth = javafx.stage.Screen.getPrimary().getVisualBounds().getWidth();
-                    double screenHeight = javafx.stage.Screen.getPrimary().getVisualBounds().getHeight();
-                    fullImgView.setFitWidth(screenWidth * 0.7);
-                    fullImgView.setFitHeight(screenHeight * 0.7);
-
-                    dialog.getDialogPane().setContent(new ScrollPane(fullImgView));
-                    dialog.showAndWait();
-                });
-
-                // Add a placeholder while loading if we want, or just wait.
-                bubble.getChildren().add(imgMsg);
-            } catch (Exception e) {
-                System.err.println("Error rendering image: " + e.getMessage());
-                Label errImg = new Label("[Imagen no disponible]");
-                errImg.setStyle("-fx-text-fill: red; -fx-font-style: italic;");
-                bubble.getChildren().add(errImg);
-            }
-        }
-
-        if (m.getAudioUrl() != null && !m.getAudioUrl().isEmpty()) {
-            Button btnPlay = new Button("▶ Reproducir Voz");
-            btnPlay.getStyleClass().add("action-button");
-            btnPlay.setOnAction(e -> {
-                System.out.println("Requesting playback for: " + m.getAudioUrl());
-                audioService.playAudio(
-                        m.getAudioUrl(),
-                        () -> Platform.runLater(() -> btnPlay.setText("\ud83d\udd0a Reproduciendo...")),
-                        () -> Platform.runLater(() -> btnPlay.setText("\u25b6 Reproducir Voz")));
-            });
-            bubble.getChildren().add(btnPlay);
-        }
-
-        Label time = new Label(new SimpleDateFormat("HH:mm").format(m.getFecha()));
-        time.setStyle("-fx-font-size: 9px; -fx-text-fill: #94a3b8;");
-        time.setAlignment(Pos.CENTER_RIGHT);
-
-        HBox timeRow = new HBox(5);
-        timeRow.setAlignment(Pos.CENTER_RIGHT);
-        timeRow.getChildren().add(time);
-
-        if (isMe) {
-            if (m.isSoporte()) {
-                Label supportBadge = new Label("🔒 Soporte");
-                supportBadge.setStyle("-fx-font-size: 8px; -fx-text-fill: #ca8a04; -fx-font-weight: bold;");
-                timeRow.getChildren().add(supportBadge);
-            }
-            if (m.isLeido()) {
-                Label check = new Label("✓✓");
-                check.setStyle("-fx-font-size: 10px; -fx-text-fill: #3b82f6;"); // Blue double check
-                timeRow.getChildren().add(check);
-            } else {
-                Label check = new Label("✓");
-                check.setStyle("-fx-font-size: 10px; -fx-text-fill: #94a3b8;"); // Gray single check
-                timeRow.getChildren().add(check);
-            }
-        }
-
-        bubble.getChildren().add(timeRow);
-
-        if (isMe) {
-            row.getChildren().addAll(bubble, avatarView);
-        } else {
-            row.getChildren().addAll(avatarView, bubble);
-        }
-
-        Platform.runLater(() -> chatContainer.getChildren().add(row));
+        com.example.aedusapp.utils.hub.MessageRenderer.render(
+            m, chatContainer, usuarioActual, incidenciaActual, hubService, audioService, this::seleccionarTicket
+        );
     }
 }

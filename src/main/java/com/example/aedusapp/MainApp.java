@@ -9,22 +9,23 @@ import com.example.aedusapp.utils.config.ThemeManager;
 
 import java.net.URL;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class MainApp extends Application {
+    private static final Logger logger = LoggerFactory.getLogger(MainApp.class);
 
     @Override
     public void start(Stage stage) throws java.io.IOException {
-        
-        URL splashUrl = MainApp.class.getResource("/com/example/aedusapp/views/general/splash_screen.fxml");
-        if (splashUrl == null) {
-            System.err.println("CRÍTICO: No se puede encontrar /com/example/aedusapp/views/general/splash_screen.fxml");
-            // Fallback a ruta relativa por si el empaquetado inicial difiere
-            splashUrl = MainApp.class.getResource("views/general/splash_screen.fxml");
-        }
-        
-        if (splashUrl == null) {
-            throw new IllegalStateException("Recurso crítico FXML no encontrado: splash_screen.fxml");
-        }
+        // Registrar manejador de excepciones global
+        Thread.setDefaultUncaughtExceptionHandler(new com.example.aedusapp.utils.ui.GlobalExceptionHandler());
 
+        logger.info("Iniciando AedusApp...");
+        
+        com.example.aedusapp.utils.DependencyInjector.register(com.example.aedusapp.database.daos.IMensajeDAO.class, new com.example.aedusapp.database.daos.MensajeDAO(new com.example.aedusapp.database.daos.AchievementDAO()));
+        com.example.aedusapp.utils.DependencyInjector.register(com.example.aedusapp.services.hub.IConnectHubService.class, new com.example.aedusapp.services.hub.ConnectHubService());
+        
+        URL splashUrl = com.example.aedusapp.utils.ResourceLoader.getFXMLURL(com.example.aedusapp.utils.config.AppConfig.getSplashPath());
         FXMLLoader fxmlLoader = new FXMLLoader(splashUrl);
         Scene scene = new Scene(fxmlLoader.load(), com.example.aedusapp.utils.config.AppConfig.getAppWidth(), com.example.aedusapp.utils.config.AppConfig.getAppHeight());
 
@@ -32,15 +33,9 @@ public class MainApp extends Application {
 
         stage.setTitle(com.example.aedusapp.utils.config.AppConfig.getAppName());
         
-        java.io.InputStream iconStream = MainApp.class.getResourceAsStream("/com/example/aedusapp/images/logo.png");
-        if (iconStream == null) {
-            iconStream = MainApp.class.getResourceAsStream("images/logo.png");
-        }
-        
+        java.io.InputStream iconStream = com.example.aedusapp.utils.ResourceLoader.getImageStream(com.example.aedusapp.utils.config.AppConfig.getIconPath());
         if (iconStream != null) {
             stage.getIcons().add(new javafx.scene.image.Image(iconStream));
-        } else {
-            System.err.println("Advertencia: No se pudo cargar el logo de la aplicación. Archivo no encontrado.");
         }
 
         stage.setResizable(false);
@@ -51,6 +46,7 @@ public class MainApp extends Application {
 
     @Override
     public void stop() throws Exception {
+        com.example.aedusapp.utils.ConcurrencyManager.shutdown();
         com.example.aedusapp.database.config.DBConnection.closePool();
         super.stop();
     }

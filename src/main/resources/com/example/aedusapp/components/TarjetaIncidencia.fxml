@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.geometry.Insets?>
+
+<fx:root type="javafx.scene.layout.VBox" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
+         spacing="14" styleClass="incidencia-card" fx:id="rootBox">
+         
+    <!-- Cabecera -->
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Label fx:id="lblId" style="-fx-font-size: 11px; -fx-font-weight: bold; -fx-opacity: 0.8;"/>
+        <Label fx:id="lblTitulo" styleClass="incidencia-titulo" HBox.hgrow="ALWAYS"/>
+        <Label fx:id="lblEstado" styleClass="estado-badge"/>
+    </HBox>
+    
+    <!-- Chips (se rellenan en código porque son variables) -->
+    <HBox fx:id="chipsContainer" spacing="8" alignment="CENTER_LEFT" />
+    
+    <!-- Descripción -->
+    <Label fx:id="lblDescripcion" styleClass="incidencia-descripcion" wrapText="true" maxHeight="72"/>
+    
+    <!-- Contenedor de Imagen (si existe) -->
+    <HBox fx:id="imagenContainer" />
+    
+    <!-- Footer (Resolución y Botones de Borrado) -->
+    <VBox fx:id="footerContainer" spacing="8" />
+    
+    <!-- Stepper Visual -->
+    <HBox fx:id="stepperContainer" spacing="0" alignment="CENTER_LEFT" style="-fx-padding: 10 0 0 0;"/>
+    
+</fx:root>

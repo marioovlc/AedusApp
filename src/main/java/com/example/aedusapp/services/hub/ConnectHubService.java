@@ -2,6 +2,7 @@ package com.example.aedusapp.services.hub;
 
 import com.example.aedusapp.database.daos.IncidenciaDAO;
 import com.example.aedusapp.database.daos.MensajeDAO;
+import com.example.aedusapp.database.daos.AchievementDAO;
 import com.example.aedusapp.database.daos.UsuarioDAO;
 import com.example.aedusapp.models.Incidencia;
 import com.example.aedusapp.models.Mensaje;
@@ -17,7 +18,7 @@ import java.util.concurrent.CompletableFuture;
  * Decouples data fetching and processing from the UI controller.
  * Adheres to professional English naming and Clean Code standards.
  */
-public class ConnectHubService {
+public class ConnectHubService implements IConnectHubService {
 
     private final IncidenciaDAO incidenciaDAO;
     private final MensajeDAO mensajeDAO;
@@ -25,7 +26,7 @@ public class ConnectHubService {
 
     public ConnectHubService() {
         this.incidenciaDAO = new IncidenciaDAO();
-        this.mensajeDAO = new MensajeDAO();
+        this.mensajeDAO = new MensajeDAO(new AchievementDAO());
         this.usuarioDAO = new UsuarioDAO();
     }
 

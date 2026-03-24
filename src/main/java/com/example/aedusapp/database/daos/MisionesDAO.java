@@ -1,30 +1,24 @@
 package com.example.aedusapp.database.daos;
 
-import com.example.aedusapp.database.config.DBConnection;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.Statement;
+import com.example.aedusapp.database.config.DatabaseHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MisionesDAO {
+    private static final Logger logger = LoggerFactory.getLogger(MisionesDAO.class);
+    private static final String TABLE_NAME = "misiones_diarias";
 
-    public MisionesDAO() {
-        createTableIfNotExists();
-    }
+    // El constructor ya NO crea la tabla. Eso lo hace DatabaseSetup al arrancar.
 
-    private void createTableIfNotExists() {
-        String sql = "CREATE TABLE IF NOT EXISTS misiones_diarias (" +
+    public void createTable() {
+        String sql = "CREATE TABLE IF NOT EXISTS " + TABLE_NAME + " (" +
                 "usuario_id UUID NOT NULL, " +
                 "tipo_mision VARCHAR(50) NOT NULL, " +
                 "fecha_completada DATE NOT NULL, " +
                 "PRIMARY KEY (usuario_id, tipo_mision, fecha_completada)" +
                 ")";
-        try (Connection con = DBConnection.getConnection();
-             Statement stmt = con.createStatement()) {
-            stmt.execute(sql);
-            System.out.println("Tabla 'misiones_diarias' verificada/creada con éxito.");
-        } catch (Exception e) {
-            System.err.println("Error creando tabla misiones_diarias: " + e.getMessage());
-        }
+        DatabaseHelper.executeUpdate(sql);
+        logger.info("Tabla '{}' verificada/creada con éxito.", TABLE_NAME);
     }
 
     /**
@@ -32,30 +26,22 @@ public class MisionesDAO {
      * Si no existe, la inserta, suma los AeduCoins al usuario y devuelve true.
      */
     public boolean registrarMisionDiaria(String usuarioId, String tipoMision, int recompensaAedus) {
-        String sqlInsert = "INSERT INTO misiones_diarias (usuario_id, tipo_mision, fecha_completada) VALUES (?::uuid, ?, CURRENT_DATE)";
-        boolean misionRegistrada = false;
+        String sqlInsert = "INSERT INTO " + TABLE_NAME + " (usuario_id, tipo_mision, fecha_completada) " +
+                "VALUES (?::uuid, ?, CURRENT_DATE) " +
+                "ON CONFLICT (usuario_id, tipo_mision, fecha_completada) DO NOTHING";
 
-        try (Connection con = DBConnection.getConnection();
-             PreparedStatement pstmt = con.prepareStatement(sqlInsert)) {
-             
-            pstmt.setString(1, usuarioId);
-            pstmt.setString(2, tipoMision);
-            
-            int rows = pstmt.executeUpdate();
-            if (rows > 0) {
-                misionRegistrada = true;
+        try {
+            boolean misionRegistrada = DatabaseHelper.executeUpdate(sqlInsert, usuarioId, tipoMision);
+            if (misionRegistrada && recompensaAedus > 0) {
+                darRecompensaAedus(usuarioId, recompensaAedus);
             }
-        } catch (Exception e) {
-            // El constraint de PRIMARY KEY lanzará una excepción si ya se ha completado hoy. Esto es seguro y lo usamos como flujo normal.
+            return misionRegistrada;
+        } catch (com.example.aedusapp.exceptions.DatabaseException e) {
+            // El constraint de PRIMARY KEY lanza excepción si la misión ya fue completada hoy.
+            // Esto es flujo normal, no un error real.
+            logger.debug("Misión '{}' ya registrada hoy para usuario {}.", tipoMision, usuarioId);
             return false;
         }
-        
-        // Si llegamos a insertar, procedemos a dar la recompensa
-        if (misionRegistrada && recompensaAedus > 0) {
-            darRecompensaAedus(usuarioId, recompensaAedus);
-        }
-        
-        return misionRegistrada;
     }
 
     private void darRecompensaAedus(String usuarioId, int aedus) {
@@ -65,10 +51,11 @@ public class MisionesDAO {
             if (u != null) {
                 int nuevasMonedas = u.getAeducoins() + aedus;
                 usuarioDAO.updateUserAeduCoins(usuarioId, nuevasMonedas);
-                System.out.println("Misión cumplida: Otorgados " + aedus + " AeduCoins a " + u.getNombre());
+                logger.info("Misión cumplida: {} AeduCoins otorgados a '{}'.", aedus, u.getNombre());
             }
         } catch (Exception ex) {
-            System.err.println("Error al otorgar recompensa de AedusCoins: " + ex.getMessage());
+            logger.error("Error al otorgar recompensa de AeduCoins a usuario {}", usuarioId, ex);
         }
     }
 }
+
