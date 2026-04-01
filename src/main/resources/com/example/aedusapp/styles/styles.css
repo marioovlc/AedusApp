@@ -1653,17 +1653,19 @@
 .chat-bubble-other {
     -fx-background-color: #1e293b;
     -fx-background-radius: 15 15 15 0;
-    -fx-text-fill: #f1f5f9;
+    -fx-text-fill: white;
 }
-.chat-bubble-other .label { -fx-text-fill: #f1f5f9; }
+.chat-bubble-other .label { -fx-text-fill: white; }
 
 .chat-bubble-ai {
-    -fx-background-color: white;
+    -fx-background-color: #0f172a;
     -fx-background-radius: 15 15 15 0;
-    -fx-text-fill: #0f172a;
+    -fx-text-fill: white;
+    -fx-border-color: #1e293b;
+    -fx-border-width: 1;
     -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.1), 8, 0, 0, 2);
 }
-.chat-bubble-ai .label { -fx-text-fill: #0f172a; }
+.chat-bubble-ai .label { -fx-text-fill: white; }
 
 .chat-bubble-support {
     -fx-background-color: #ca8a04;
@@ -1704,4 +1706,54 @@
 .splash-version {
     -fx-text-fill: #475569;
     -fx-font-size: 10px;
+}
+
+/* ── Monitorización Modern Style ── */
+.incidencia-row-modern {
+    -fx-background-color: #0d1629;
+    -fx-background-radius: 0 12 12 0;
+    -fx-cursor: hand;
+    -fx-border-color: transparent transparent #0f1a2d transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-transition: 0.2s;
+}
+
+.incidencia-row-modern:hover {
+    -fx-background-color: #111f3a;
+}
+
+.incidencia-row-modern.selected {
+    -fx-background-color: #1a2d45;
+    -fx-effect: dropshadow(three-pass-box, rgba(79, 142, 247, 0.15), 10, 0, 0, 0);
+}
+
+.estado-badge-modern {
+    -fx-padding: 4 12;
+    -fx-background-radius: 20;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-min-width: 90;
+    -fx-alignment: center;
+}
+
+.chat-scroll-pane {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-border-color: #1c2d47;
+    -fx-border-width: 1;
+    -fx-border-radius: 8;
+}
+
+.chat-input-field {
+    -fx-background-color: #0f1a2d;
+    -fx-background-radius: 20;
+    -fx-padding: 8 16;
+    -fx-text-fill: white;
+    -fx-prompt-text-fill: #475569;
+    -fx-border-color: #1c2d47;
+    -fx-border-radius: 20;
+}
+
+.chat-input-field:focused {
+    -fx-border-color: #4f8ef7;
 }

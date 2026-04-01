@@ -33,12 +33,19 @@ public class DatabaseSetup {
             
             // --- MIGRACIONES DE ESQUEMA ---
 
-            // 1. Columnas de Usuario (Personalización)
+            // 1. Columnas de Usuario (Personalización y Reglas de Negocio)
             try {
+                // Aseguramos que todas las columnas críticas para el modelo de Java existen
+                stmt.executeUpdate("ALTER TABLE neon_auth.user ADD COLUMN IF NOT EXISTS password VARCHAR(255)");
+                stmt.executeUpdate("ALTER TABLE neon_auth.user ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'user'");
+                stmt.executeUpdate("ALTER TABLE neon_auth.user ADD COLUMN IF NOT EXISTS banned BOOLEAN DEFAULT FALSE");
+                stmt.executeUpdate("ALTER TABLE neon_auth.user ADD COLUMN IF NOT EXISTS aeducoins INTEGER DEFAULT 0");
+                stmt.executeUpdate("ALTER TABLE neon_auth.user ADD COLUMN IF NOT EXISTS foto_perfil VARCHAR(500)");
+                stmt.executeUpdate("ALTER TABLE neon_auth.user ADD COLUMN IF NOT EXISTS foto_perfil_datos BYTEA");
                 stmt.executeUpdate("ALTER TABLE neon_auth.user ADD COLUMN IF NOT EXISTS telefono VARCHAR(20)");
                 stmt.executeUpdate("ALTER TABLE neon_auth.user ADD COLUMN IF NOT EXISTS bio TEXT");
             } catch (Exception e) {
-                logger.error("Error migrando tabla usuarios: {}", e.getMessage(), e);
+                logger.error("Error migrando tabla usuarios (personalización): {}", e.getMessage(), e);
             }
 
             // 2. Columnas de Mensajes (Chat Directo y Tickets Compartidos)

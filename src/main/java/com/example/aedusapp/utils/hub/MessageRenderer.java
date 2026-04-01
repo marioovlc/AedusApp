@@ -58,13 +58,15 @@ public class MessageRenderer {
         
         if (m.isSoporte()) {
             bubble.getStyleClass().add("chat-bubble-support");
+        } else if ("system".equals(m.getUsuarioId())) {
+            bubble.getStyleClass().add("chat-bubble-ai");
         } else {
             bubble.getStyleClass().add(isMe ? "chat-bubble-me" : "chat-bubble-other");
         }
 
         if (!isMe) {
             Label name = new Label(m.getNombre() != null ? m.getNombre() : "Usuario");
-            name.setStyle("-fx-font-size: 10px; -fx-text-fill: #64748b; -fx-font-weight: bold;");
+            name.setStyle("-fx-font-size: 10px; -fx-text-fill: #cbd5e1; -fx-font-weight: bold;");
             bubble.getChildren().add(name);
 
             // Mark as read in background
@@ -77,7 +79,7 @@ public class MessageRenderer {
         if (m.getTexto() != null && !m.getTexto().isEmpty()) {
             Label txt = new Label(m.getTexto());
             txt.setWrapText(true);
-            txt.setStyle("-fx-text-fill: #0f172a; -fx-font-size: 13px;");
+            txt.setStyle("-fx-text-fill: white; -fx-font-size: 13px;");
             bubble.getChildren().add(txt);
         }
 
@@ -146,7 +148,7 @@ public class MessageRenderer {
             Label lblDuration = new Label("Mensaje de Voz");
             String audioLabelColor;
             if (m.isSoporte()) audioLabelColor = "#854d0e";
-            else audioLabelColor = isMe ? "#e2edf9" : "#94a3b8";
+            else audioLabelColor = isMe ? "#e2edf9" : "#cbd5e1";
             lblDuration.setStyle("-fx-text-fill: " + audioLabelColor + "; -fx-font-size: 11px;");
 
             btnPlay.setOnAction(e -> audioService.playAudio(m.getAudioUrl(), 

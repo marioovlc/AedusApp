@@ -52,7 +52,7 @@ public class MensajeDAO implements IMensajeDAO {
     
     private static final String GET_MESSAGES_BASE = 
         "SELECT m.*, u.name as nombre, u.foto_perfil_datos FROM mensajes m " +
-        "JOIN neon_auth.user u ON CAST(m.usuario_id AS TEXT) = CAST(u.id AS TEXT) " +
+        "LEFT JOIN neon_auth.user u ON CAST(m.usuario_id AS TEXT) = CAST(u.id AS TEXT) " +
         "WHERE m.incidencia_id = ? ORDER BY m.fecha ASC ";
         
     private static final String GET_DIRECT_MESSAGES_BASE = 
@@ -126,11 +126,14 @@ public class MensajeDAO implements IMensajeDAO {
     }
 
     private Mensaje mapResultSetToMensaje(ResultSet rs) throws SQLException {
+        String nombre = rs.getString("nombre");
+        if (nombre == null) nombre = "Usuario"; // Fallback
+        
         Mensaje m = new Mensaje(
                 rs.getInt("id"),
                 rs.getInt("incidencia_id"),
                 rs.getString("usuario_id"),
-                rs.getString("nombre"),
+                nombre,
                 rs.getBytes("foto_perfil_datos"),
                 rs.getString("texto"),
                 rs.getString("imagen_url"),

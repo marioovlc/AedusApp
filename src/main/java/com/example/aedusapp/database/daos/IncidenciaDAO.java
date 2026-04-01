@@ -40,10 +40,10 @@ public class IncidenciaDAO {
         "ORDER BY CASE WHEN e.nombre = 'NO LEIDO' THEN 0 ELSE 1 END, i.fecha_creacion DESC";
 
     private static final String UPDATE_STATUS = 
-        "UPDATE incidencias SET estado_id = (SELECT id FROM estados WHERE nombre = ?) WHERE id = ?";
+        "UPDATE incidencias SET estado_id = (SELECT id FROM estados WHERE UPPER(nombre) = UPPER(?)) WHERE id = ?";
 
     private static final String UPDATE_RESOLUTION = 
-        "UPDATE incidencias SET resolucion = ?, estado_id = (SELECT id FROM estados WHERE nombre = ?) WHERE id = ?";
+        "UPDATE incidencias SET resolucion = ?, estado_id = (SELECT id FROM estados WHERE UPPER(nombre) = UPPER(?)) WHERE id = ?";
 
     private static final String DELETE_TICKET = "DELETE FROM incidencias WHERE id = ?";
     private static final String DELETE_ALL_TICKETS = "DELETE FROM incidencias";

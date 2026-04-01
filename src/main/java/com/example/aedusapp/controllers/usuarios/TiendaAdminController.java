@@ -130,7 +130,7 @@ public class TiendaAdminController {
             int coste = Integer.parseInt(costeStr);
             // Encode icon in description: "ico:🎨;La descripción real"
             String descFinal = icono.isEmpty() ? desc : "ico:" + icono + ";" + desc;
-            TiendaItem nuevo = new TiendaItem(0, nombre, coste, descFinal);
+            TiendaItem nuevo = new TiendaItem(0, nombre, coste, descFinal, "star", "#F2C94C");
             if (tiendaDAO.saveItem(nuevo)) {
                 limpiarCampos();
                 cargarDatos();

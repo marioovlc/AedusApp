@@ -30,7 +30,7 @@ public class PresenceManager {
     public void start(Usuario usuarioActual) {
         if (presenceTimeline != null) presenceTimeline.stop();
 
-        presenceTimeline = new Timeline(new KeyFrame(Duration.seconds(20), e -> {
+        presenceTimeline = new Timeline(new KeyFrame(Duration.seconds(10), e -> {
             if (usuarioActual != null) {
                 Task<Void> pingTask = new Task<>() {
                     @Override

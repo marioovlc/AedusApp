@@ -25,6 +25,7 @@
             <VBox spacing="5.0" HBox.hgrow="ALWAYS">
                 <Label styleClass="page-title" text="Monitorización de Tickets"/>
                 <Label styleClass="page-subtitle" text="Gestión de estados y resolución de incidencias"/>
+                <Label fx:id="lblUsuarioConectado" style="-fx-text-fill: #4f8ef7; -fx-font-size: 12px; -fx-font-weight: bold; -fx-padding: 2 0 0 0;" text="Conectado como: ..."/>
             </VBox>
             <Button fx:id="btnExportarCSV" text="📄 Exportar CSV" styleClass="action-button"/>
             <Button fx:id="btnEliminarTodo" text="⚠️ Eliminar Todas" styleClass="action-button,danger-button"/>
@@ -104,7 +105,21 @@
                 <Button fx:id="btnGuardarFAQ" text="💾 Guardar en FAQ" styleClass="action-button" visible="false" managed="false"/>
             </VBox>
             <Separator/>
-            <Button fx:id="btnEliminar" maxWidth="Infinity" styleClass="action-button,danger-button" text="🗑 Eliminar Ticket"/>
+            <VBox spacing="10.0" VBox.vgrow="ALWAYS">
+                <Label styleClass="details-label" text="🗨 COMENTARIOS / CHAT"/>
+                <ScrollPane fx:id="scrollChat" fitToWidth="true" minHeight="200.0" styleClass="chat-scroll-pane" vbarPolicy="AS_NEEDED">
+                    <VBox fx:id="chatContainer" spacing="8.0" style="-fx-background-color: transparent;">
+                        <padding><Insets bottom="10.0" left="10.0" right="10.0" top="10.0"/></padding>
+                    </VBox>
+                </ScrollPane>
+                <HBox spacing="8.0" alignment="CENTER">
+                    <TextField fx:id="txtMensaje" HBox.hgrow="ALWAYS" promptText="Escribe un comentario..." styleClass="chat-input-field"/>
+                    <Button fx:id="btnEnviar" text="▶" onAction="#handleEnviarComentario" styleClass="action-button,primary-button"/>
+                </HBox>
+            </VBox>
+            <Separator/>
+
+            <Button fx:id="btnEliminar" maxWidth="Infinity" styleClass="action-button,danger-button" text="🗑 Eliminar Ticket" onAction="#eliminarTicket"/>
         </VBox>
     </ScrollPane>
 </HBox>

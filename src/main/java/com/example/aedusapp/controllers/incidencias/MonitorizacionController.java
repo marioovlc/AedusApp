@@ -8,12 +8,18 @@ import com.example.aedusapp.services.ai.AIService;
 import com.example.aedusapp.services.logging.LogService;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
+import com.example.aedusapp.models.Mensaje;
+import com.example.aedusapp.services.hub.IConnectHubService;
+import com.example.aedusapp.utils.hub.MessageRenderer;
+import com.example.aedusapp.services.audio.AudioRecorderService;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.text.Text;
+import javafx.application.Platform;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
@@ -122,7 +128,24 @@ public class MonitorizacionController {
 
     public void setUsuarioActual(Usuario usuario) {
         this.usuarioActual = usuario;
+        if (lblUsuarioConectado != null && usuario != null) {
+            lblUsuarioConectado.setText("👤 Conectado como: " + usuario.getNombre());
+        }
         cargarIncidencias();
+        inicializarRefrescoAutomatico();
+    }
+
+    private void inicializarRefrescoAutomatico() {
+        refreshTimeline = new javafx.animation.Timeline(
+            new javafx.animation.KeyFrame(javafx.util.Duration.seconds(5), e -> {
+                cargarIncidencias();
+                if (incidenciaSeleccionada != null) {
+                    loadTicketMessages(incidenciaSeleccionada);
+                }
+            })
+        );
+        refreshTimeline.setCycleCount(javafx.animation.Timeline.INDEFINITE);
+        refreshTimeline.play();
     }
 
     public void setInitialFilter(String estado) {
@@ -137,7 +160,16 @@ public class MonitorizacionController {
         activarChip("Todos");
         aplicarFiltros();
     }
-
+    @FXML private Label lblUsuarioConectado;
+    @FXML private ScrollPane scrollChat;
+    @FXML private VBox chatContainer;
+    @FXML private TextField txtMensaje;
+    @FXML private Button btnEnviar;
+    private final IConnectHubService hubService = com.example.aedusapp.utils.DependencyInjector.get(IConnectHubService.class);
+    private final AudioRecorderService audioService = new AudioRecorderService();
+    private javafx.animation.Timeline refreshTimeline;
+    private int lastMessageIdRendered = -1;
+    private final java.util.Map<Integer, HBox> cardNodes = new java.util.HashMap<>();
     @FXML
     private void onChipNoLeido() {
         activarChip("NO LEIDO");
@@ -225,10 +257,12 @@ public class MonitorizacionController {
 
     // ── Carga ─────────────────────────────────────────────────────────
     private void cargarIncidencias() {
-        listaIncidencias.getChildren().clear();
-        Label loading = new Label("⏳ Cargando incidencias...");
-        loading.setStyle("-fx-text-fill: #64748b; -fx-font-size: 14px; -fx-padding: 20;");
-        listaIncidencias.getChildren().add(loading);
+        if (todasIncidencias == null || todasIncidencias.isEmpty()) {
+            listaIncidencias.getChildren().clear();
+            Label loading = new Label("⏳ Cargando incidencias...");
+            loading.setStyle("-fx-text-fill: #64748b; -fx-font-size: 14px; -fx-padding: 20;");
+            listaIncidencias.getChildren().add(loading);
+        }
 
         javafx.concurrent.Task<List<Incidencia>> task = new javafx.concurrent.Task<>() {
             @Override
@@ -249,11 +283,11 @@ public class MonitorizacionController {
         new Thread(task).start();
     }
 
-    // ── Construcción de cards ─────────────────────────────────────────
+    // ── Construcción de cards (Smart Update) ─────────────────────────
     private void construirListaCards(List<Incidencia> lista) {
-        listaIncidencias.getChildren().clear();
-
         if (lista.isEmpty()) {
+            listaIncidencias.getChildren().clear();
+            cardNodes.clear();
             VBox empty = new VBox(8);
             empty.setAlignment(Pos.CENTER);
             empty.setPadding(new Insets(60));
@@ -267,72 +301,88 @@ public class MonitorizacionController {
         }
 
         SimpleDateFormat dateFmt = new SimpleDateFormat("dd/MM/yy HH:mm");
-        for (Incidencia inc : lista) {
-            listaIncidencias.getChildren().add(crearFilaIncidencia(inc, dateFmt));
+        java.util.Set<Integer> nuevosIds = lista.stream().map(Incidencia::getId).collect(java.util.stream.Collectors.toSet());
+        
+        // Eliminar tarjetas que ya no existen o fueron filtradas
+        cardNodes.keySet().removeIf(id -> {
+            if (!nuevosIds.contains(id)) {
+                listaIncidencias.getChildren().remove(cardNodes.get(id));
+                return true;
+            }
+            return false;
+        });
+
+        for (int i = 0; i < lista.size(); i++) {
+            Incidencia inc = lista.get(i);
+            if (!cardNodes.containsKey(inc.getId())) {
+                HBox card = crearFilaIncidencia(inc, dateFmt);
+                cardNodes.put(inc.getId(), card);
+                listaIncidencias.getChildren().add(i, card);
+            } else {
+                actualizarFilaExistente(cardNodes.get(inc.getId()), inc);
+                // Asegurar orden
+                Node node = cardNodes.get(inc.getId());
+                int currentIndex = listaIncidencias.getChildren().indexOf(node);
+                if (currentIndex != i) {
+                    listaIncidencias.getChildren().remove(node);
+                    listaIncidencias.getChildren().add(i, node);
+                }
+            }
+        }
+    }
+
+    private void actualizarFilaExistente(HBox row, Incidencia inc) {
+        String color = getEstadoColor(inc.getEstado());
+        row.setStyle("-fx-border-color: transparent transparent transparent " + color + "; -fx-border-width: 0 0 0 5; -fx-background-radius: 0 12 12 0;");
+        
+        // Buscar el badge de estado y actualizarlo
+        for (Node n : row.getChildren()) {
+            if (n instanceof Label lbl && lbl.getStyleClass().contains("estado-badge-modern")) {
+                lbl.setText(getEstadoEmoji(inc.getEstado()) + " " + inc.getEstado());
+                lbl.setStyle("-fx-background-color: " + hexToRgba(color, 0.15) + "; -fx-text-fill: " + color + ";");
+            }
         }
     }
 
     private HBox crearFilaIncidencia(Incidencia inc, SimpleDateFormat dateFmt) {
-        HBox row = new HBox(12);
+        HBox row = new HBox(16);
         row.setAlignment(Pos.CENTER_LEFT);
-        row.setPadding(new Insets(12, 14, 12, 14));
-        row.getStyleClass().add("user-list-row");
-
-        String estadoClase = "row-role-default";
-        String badgeClase = "";
+        row.setPadding(new Insets(16, 20, 16, 20));
+        row.getStyleClass().add("incidencia-row-modern");
+        
+        // Borde lateral basado en estado
         String estadoColor = getEstadoColor(inc.getEstado());
+        row.setStyle("-fx-border-color: transparent transparent transparent " + estadoColor + "; -fx-border-width: 0 0 0 5; -fx-background-radius: 0 12 12 0;");
 
-        if (inc.getEstado() != null) {
-            switch (inc.getEstado().toUpperCase()) {
-                case "NO LEIDO" -> { estadoClase = "row-role-admin"; badgeClase = "no-leido"; }
-                case "LEIDO" -> { estadoClase = "row-role-user"; badgeClase = "leido"; }
-                case "EN REVISION" -> { estadoClase = "row-role-pending"; badgeClase = "en-revision"; }
-                case "ACABADO" -> { estadoClase = "row-role-mantenimiento"; badgeClase = "acabado"; } 
-            }
-        }
-        row.getStyleClass().add(estadoClase);
-
-        // Badge de estado
-        Label badge = new Label(getEstadoEmoji(inc.getEstado()) + " " + inc.getEstado());
-        badge.getStyleClass().addAll("estado-badge", badgeClase);
-        badge.setMinWidth(100);
-
-        // ID
+        // Info principal
+        VBox mainInfo = new VBox(4);
+        HBox.setHgrow(mainInfo, Priority.ALWAYS);
+        
+        HBox titleLine = new HBox(10);
+        titleLine.setAlignment(Pos.CENTER_LEFT);
         Label lblId = new Label("#" + inc.getId());
         lblId.setStyle("-fx-text-fill: " + estadoColor + "; -fx-font-weight: bold; -fx-font-size: 11px;");
-        lblId.setMinWidth(30);
-
-        // Texto: título + meta
-        VBox textBlock = new VBox(2);
-        HBox.setHgrow(textBlock, Priority.ALWAYS);
-        Label lblTitulo = new Label(inc.getTitulo() != null ? inc.getTitulo() : "(sin título)");
+        
+        Label lblTitulo = new Label(inc.getTitulo());
         lblTitulo.getStyleClass().add("user-list-name");
-        lblTitulo.setWrapText(false);
+        lblTitulo.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
+        titleLine.getChildren().addAll(lblId, lblTitulo);
 
-        String creador = inc.getCreadorNombre() != null ? "👤 " + inc.getCreadorNombre() : "";
-        String asignado = inc.getAsignadoNombre() != null && !inc.getAsignadoNombre().isEmpty()
-                ? "  •  🔧 " + inc.getAsignadoNombre()
-                : "";
-        Label lblMeta = new Label(creador + asignado);
+        Label lblMeta = new Label("👤 " + (inc.getCreadorNombre() != null ? inc.getCreadorNombre() : "Usuario") + 
+                                  "  •  📅 " + (inc.getFechaCreacion() != null ? dateFmt.format(inc.getFechaCreacion()) : "--"));
         lblMeta.getStyleClass().add("user-list-email");
+        mainInfo.getChildren().addAll(titleLine, lblMeta);
 
-        textBlock.getChildren().addAll(lblTitulo, lblMeta);
+        // Estado Badge
+        Label badge = new Label(getEstadoEmoji(inc.getEstado()) + " " + inc.getEstado());
+        badge.getStyleClass().addAll("estado-badge-modern");
+        badge.setStyle("-fx-background-color: " + hexToRgba(estadoColor, 0.15) + "; -fx-text-fill: " + estadoColor + ";");
 
-        // Fecha
-        String fecha = inc.getFechaCreacion() != null ? dateFmt.format(inc.getFechaCreacion()) : "--";
-        Label lblFecha = new Label(fecha);
-        lblFecha.getStyleClass().add("user-list-email");
-        lblFecha.setMinWidth(72);
-        lblFecha.setAlignment(Pos.CENTER_RIGHT);
+        row.getChildren().addAll(mainInfo, badge);
 
-        row.getChildren().addAll(badge, lblId, textBlock, lblFecha);
-
-        // Click → mostrar detalles | Double Click → Cambiar estado
         row.setOnMouseClicked(e -> {
             if (e.getClickCount() == 1) {
-                listaIncidencias.getChildren().forEach(n -> {
-                    if (n instanceof HBox) n.getStyleClass().remove("selected");
-                });
+                listaIncidencias.getChildren().forEach(n -> n.getStyleClass().remove("selected"));
                 row.getStyleClass().add("selected");
                 mostrarDetalles(inc);
             } else if (e.getClickCount() == 2) {
@@ -341,6 +391,18 @@ public class MonitorizacionController {
         });
 
         return row;
+    }
+
+    private String hexToRgba(String hex, double alpha) {
+        try {
+            hex = hex.replace("#", "");
+            int r = Integer.parseInt(hex.substring(0, 2), 16);
+            int g = Integer.parseInt(hex.substring(2, 4), 16);
+            int b = Integer.parseInt(hex.substring(4, 6), 16);
+            return "rgba(" + r + "," + g + "," + b + "," + alpha + ")";
+        } catch (Exception e) {
+            return "rgba(100,116,139," + alpha + ")";
+        }
     }
 
     private void ciclarEstado(Incidencia inc) {
@@ -386,6 +448,12 @@ public class MonitorizacionController {
 
     // ── Panel de detalles ─────────────────────────────────────────────
     private void mostrarDetalles(Incidencia incidencia) {
+        if (this.incidenciaSeleccionada != null && this.incidenciaSeleccionada.getId() == incidencia.getId()) {
+            // Si ya está seleccionada, solo actualizamos los badges de estado en el panel de detalles si es necesario
+            actualizarBotonesEstado(incidencia.getEstado());
+            return;
+        }
+
         this.incidenciaSeleccionada = incidencia;
         panelDetalles.setVisible(true);
         panelDetalles.setManaged(true);
@@ -423,6 +491,10 @@ public class MonitorizacionController {
         }
 
         actualizarBotonesEstado(incidencia.getEstado());
+
+        lastMessageIdRendered = -1; // Resetear para que cargue todo al seleccionar uno nuevo
+        chatContainer.getChildren().clear();
+        loadTicketMessages(incidencia);
 
         txtAiResponse.setVisible(false);
         txtAiResponse.setManaged(false);
@@ -518,6 +590,53 @@ public class MonitorizacionController {
         }
     }
 
+    private void loadTicketMessages(Incidencia inc) {
+        if (inc == null || chatContainer == null) return;
+        
+        javafx.concurrent.Task<List<Mensaje>> loadTask = new javafx.concurrent.Task<>() {
+            @Override protected List<Mensaje> call() {
+                return hubService.getTicketMessages(inc.getId(), 50);
+            }
+        };
+        loadTask.setOnSucceeded(e -> {
+            List<Mensaje> mensajes = loadTask.getValue();
+            if (mensajes.isEmpty()) return;
+            
+            boolean appended = false;
+            for (Mensaje m : mensajes) {
+                if (m.getId() > lastMessageIdRendered) {
+                    MessageRenderer.render(m, chatContainer, usuarioActual, incidenciaSeleccionada, hubService, audioService, null);
+                    lastMessageIdRendered = m.getId();
+                    appended = true;
+                }
+            }
+            if (appended) {
+                Platform.runLater(() -> {
+                    if (scrollChat != null) scrollChat.setVvalue(1.0);
+                });
+            }
+        });
+        com.example.aedusapp.utils.ConcurrencyManager.submit(loadTask);
+    }
+
+    @FXML
+    private void handleEnviarComentario() {
+        if (incidenciaSeleccionada == null || txtMensaje == null || txtMensaje.getText().trim().isEmpty()) return;
+        
+        String texto = txtMensaje.getText().trim();
+        txtMensaje.clear();
+        
+        javafx.concurrent.Task<Void> sendTask = new javafx.concurrent.Task<>() {
+            @Override protected Void call() {
+                hubService.sendTicketMessage(incidenciaSeleccionada.getId(), usuarioActual.getId(), texto, null, null, false);
+                return null;
+            }
+        };
+        sendTask.setOnSucceeded(e -> loadTicketMessages(incidenciaSeleccionada));
+        com.example.aedusapp.utils.ConcurrencyManager.submit(sendTask);
+    }
+
+    @FXML
     private void eliminarTicket() {
         if (incidenciaSeleccionada == null) {
             com.example.aedusapp.utils.ui.AlertUtils.showAlert(Alert.AlertType.WARNING, "Error",

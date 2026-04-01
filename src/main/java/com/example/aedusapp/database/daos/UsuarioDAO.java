@@ -16,8 +16,8 @@ import org.springframework.security.crypto.bcrypt.BCrypt;
 public class UsuarioDAO {
 
     // --- SQL CONSTANTS ---
-    private static final String GET_USERS_ACTIVE = "SELECT * FROM neon_auth.user WHERE banned = false ORDER BY name";
-    private static final String GET_USERS_INACTIVE = "SELECT * FROM neon_auth.user WHERE banned = true ORDER BY name";
+    private static final String GET_USERS_ACTIVE = "SELECT * FROM neon_auth.user WHERE (banned IS NULL OR banned = false) ORDER BY name";
+    private static final String GET_USERS_INACTIVE = "SELECT * FROM neon_auth.user WHERE (banned IS TRUE) ORDER BY name";
     private static final String GET_ALL_USERS = "SELECT * FROM neon_auth.user";
     private static final String GET_USER_BY_ID = "SELECT * FROM neon_auth.user WHERE id = ?::uuid";
     private static final String UPDATE_USER_COINS = "UPDATE neon_auth.user SET aeducoins = ? WHERE id = ?::uuid";

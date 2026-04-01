@@ -122,6 +122,7 @@ public class ConnectHubController {
     private Incidencia incidenciaActual;
     private Usuario usuarioDestino; // For direct chat
     private boolean isAedusAIChat = false;
+    private int lastMessageIdRendered = -1;
 
     private final AIService aiService = new AIService();
 
@@ -138,6 +139,8 @@ public class ConnectHubController {
     private boolean isSupportModeActive = false;
     private static final String SUPPORT_COLOR = "#fef9c3"; // Soft gold post-it color
     private static final String SUPPORT_BORDER = "#eab308";
+    
+    private javafx.animation.Timeline refreshTimeline;
 
     @FXML
     public void initialize() {
@@ -306,6 +309,19 @@ public class ConnectHubController {
             listaTickets.refresh();
         });
         configurarDragAndDrop();
+        inicializarRefrescoAutomatico();
+    }
+
+    private void inicializarRefrescoAutomatico() {
+        refreshTimeline = new javafx.animation.Timeline(
+            new javafx.animation.KeyFrame(javafx.util.Duration.seconds(5), e -> {
+                if (incidenciaActual != null || usuarioDestino != null) {
+                    loadChatHistory();
+                }
+            })
+        );
+        refreshTimeline.setCycleCount(javafx.animation.Timeline.INDEFINITE);
+        refreshTimeline.play();
     }
 
     private void configurarDragAndDrop() {
@@ -577,11 +593,10 @@ public class ConnectHubController {
                 vboxImagen.setVisible(false);
                 vboxImagen.setManaged(false);
             }
-        } else {
-            vboxImagen.setVisible(false);
-            vboxImagen.setManaged(false);
         }
 
+        lastMessageIdRendered = -1;
+        chatContainer.getChildren().clear();
         loadChatHistory();
     }
 
@@ -640,6 +655,8 @@ public class ConnectHubController {
         btnGuardarPerfil.setVisible(isMe);
         btnGuardarPerfil.setManaged(isMe);
 
+        lastMessageIdRendered = -1;
+        chatContainer.getChildren().clear();
         loadChatHistory();
     }
 
@@ -744,7 +761,6 @@ public class ConnectHubController {
     }
 
     private void loadChatHistory() {
-        chatContainer.getChildren().clear();
         Task<List<Mensaje>> loadTask = new Task<>() {
             @Override protected List<Mensaje> call() {
                 if (incidenciaActual != null) return hubService.getTicketMessages(incidenciaActual.getId(), 100);
@@ -753,7 +769,26 @@ public class ConnectHubController {
             }
         };
         loadTask.setOnSucceeded(e -> {
-            for (Mensaje m : loadTask.getValue()) addMessageToChat(m);
+            List<Mensaje> mensajes = loadTask.getValue();
+            if (mensajes.isEmpty()) {
+                if (lastMessageIdRendered == -1) chatContainer.getChildren().clear();
+                return;
+            }
+            
+            boolean appended = false;
+            for (Mensaje m : mensajes) {
+                if (m.getId() > lastMessageIdRendered) {
+                    addMessageToChat(m);
+                    lastMessageIdRendered = m.getId();
+                    appended = true;
+                }
+            }
+            
+            if (appended) {
+                Platform.runLater(() -> {
+                    if (scrollChat != null) scrollChat.setVvalue(1.0);
+                });
+            }
         });
         com.example.aedusapp.utils.ConcurrencyManager.submit(loadTask);
     }
