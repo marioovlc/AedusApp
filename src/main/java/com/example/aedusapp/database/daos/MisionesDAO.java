@@ -6,7 +6,7 @@ import org.slf4j.LoggerFactory;
 
 public class MisionesDAO {
     private static final Logger logger = LoggerFactory.getLogger(MisionesDAO.class);
-    private static final String TABLE_NAME = "misiones_diarias";
+    private static final String TABLE_NAME = "gestion_incidencias.misiones_diarias";
 
     // El constructor ya NO crea la tabla. Eso lo hace DatabaseSetup al arrancar.
 

@@ -2,6 +2,7 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.PasswordField?>
@@ -67,6 +68,11 @@
             <VBox spacing="5.0">
                 <Label text="Tema de la Aplicación" styleClass="input-label" />
                 <ComboBox fx:id="cmbTheme" styleClass="combo-box" prefWidth="300" />
+            </VBox>
+
+            <VBox spacing="5.0" style="-fx-padding: 10 0 0 0;">
+                <Label text="Accesibilidad Visual" styleClass="input-label" />
+                <CheckBox fx:id="chkLargeText" text="Activar Modo Lectura (Textos Más Grandes)" styleClass="check-box" />
             </VBox>
         </VBox>
 

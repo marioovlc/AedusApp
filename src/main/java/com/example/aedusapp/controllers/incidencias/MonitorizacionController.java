@@ -103,14 +103,18 @@ public class MonitorizacionController {
 
         panelDetalles.setVisible(false);
         panelDetalles.setManaged(false);
+
+        // Real-time search with debounce-like behavior
+        if (txtBuscarMonitor != null) {
+            txtBuscarMonitor.textProperty().addListener((obs, oldVal, newVal) -> aplicarFiltros());
+        }
     }
 
     private void guardarEnFAQ() {
         if (incidenciaSeleccionada == null || txtAiResponse.getText().isEmpty()) return;
         boolean exitoso = conocimientoDAO.insertArticulo(incidenciaSeleccionada.getTitulo(), txtAiResponse.getText());
         if (exitoso) {
-            com.example.aedusapp.controllers.general.MainController.showGlobalLoading(true, "Guardado en la Base de Conocimientos");
-            new Thread(() -> { try { Thread.sleep(1500); } catch(Exception ignored){} javafx.application.Platform.runLater(()->com.example.aedusapp.controllers.general.MainController.showGlobalLoading(false,""));}).start();
+            com.example.aedusapp.utils.ui.ToastNotification.success(btnExportarCSV.getScene().getWindow(), "Guardado en la Base de Conocimiento");
         } else {
             lblAiStatus.setText("Error al guardar en el FAQ.");
         }
@@ -119,6 +123,12 @@ public class MonitorizacionController {
     public void setUsuarioActual(Usuario usuario) {
         this.usuarioActual = usuario;
         cargarIncidencias();
+    }
+
+    public void setInitialFilter(String estado) {
+        if (estado == null) return;
+        activarChip(estado);
+        aplicarFiltros();
     }
 
     // ── Chip handlers ──────────────────────────────────────────────────
@@ -206,8 +216,7 @@ public class MonitorizacionController {
                         i.getFechaCreacion() != null ? i.getFechaCreacion().toString() : ""));
                 }
                 
-                com.example.aedusapp.controllers.general.MainController.showGlobalLoading(true, "Exportado con éxito!");
-                new Thread(() -> { try { Thread.sleep(2000); } catch(Exception ignored){} javafx.application.Platform.runLater(()->com.example.aedusapp.controllers.general.MainController.showGlobalLoading(false,""));}).start();
+                com.example.aedusapp.utils.ui.ToastNotification.success(btnExportarCSV.getScene().getWindow(), "Reporte CSV exportado con éxito");
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
@@ -318,16 +327,35 @@ public class MonitorizacionController {
 
         row.getChildren().addAll(badge, lblId, textBlock, lblFecha);
 
-        // Click → mostrar detalles
+        // Click → mostrar detalles | Double Click → Cambiar estado
         row.setOnMouseClicked(e -> {
-            listaIncidencias.getChildren().forEach(n -> {
-                if (n instanceof HBox) n.getStyleClass().remove("selected");
-            });
-            row.getStyleClass().add("selected");
-            mostrarDetalles(inc);
+            if (e.getClickCount() == 1) {
+                listaIncidencias.getChildren().forEach(n -> {
+                    if (n instanceof HBox) n.getStyleClass().remove("selected");
+                });
+                row.getStyleClass().add("selected");
+                mostrarDetalles(inc);
+            } else if (e.getClickCount() == 2) {
+                ciclarEstado(inc);
+            }
         });
 
         return row;
+    }
+
+    private void ciclarEstado(Incidencia inc) {
+        String[] ciclo = { "NO LEIDO", "LEIDO", "EN REVISION", "ACABADO" };
+        String actual = inc.getEstado() != null ? inc.getEstado().toUpperCase() : "NO LEIDO";
+        int index = -1;
+        for (int i = 0; i < ciclo.length; i++) {
+            if (ciclo[i].equals(actual)) {
+                index = i;
+                break;
+            }
+        }
+        String siguiente = ciclo[(index + 1) % ciclo.length];
+        this.incidenciaSeleccionada = inc; // Aseguramos que está seleccionada para cambiarEstado
+        cambiarEstado(siguiente);
     }
 
     // ── Helpers de colores ────────────────────────────────────────────
@@ -464,7 +492,7 @@ public class MonitorizacionController {
 
     private void cambiarEstado(String nuevoEstado) {
         if (incidenciaSeleccionada == null) {
-            mostrarAlerta("Error", "No hay incidencia seleccionada.", Alert.AlertType.WARNING);
+            com.example.aedusapp.utils.ui.ToastNotification.error(btnExportarCSV.getScene().getWindow(), "No hay incidencia seleccionada.");
             return;
         }
         if (incidenciaDAO.updateStatus(incidenciaSeleccionada.getId(), nuevoEstado)) {
@@ -474,19 +502,19 @@ public class MonitorizacionController {
             if ("ACABADO".equalsIgnoreCase(nuevoEstado) && usuarioActual != null) {
                 boolean completada = misionesDAO.registrarMisionDiaria(usuarioActual.getId(), "RESOLVER_TICKET", 15);
                 if (completada) {
-                    mostrarAlerta("¡Misión Cumplida!", "Has resuelto un ticket hoy. (+15 Aedus)", Alert.AlertType.INFORMATION);
+                    com.example.aedusapp.utils.ui.ToastNotification.success(btnExportarCSV.getScene().getWindow(), "¡Misión Cumplida! (+15 Aedus)");
                 } else {
-                    mostrarAlerta("Éxito", "Estado actualizado a: " + nuevoEstado, Alert.AlertType.INFORMATION);
+                    com.example.aedusapp.utils.ui.ToastNotification.info(btnExportarCSV.getScene().getWindow(), "Ticket finalizado");
                 }
             } else {
-                mostrarAlerta("Éxito", "Estado actualizado a: " + nuevoEstado, Alert.AlertType.INFORMATION);
+                com.example.aedusapp.utils.ui.ToastNotification.info(btnExportarCSV.getScene().getWindow(), "Estado: " + nuevoEstado);
             }
             
             incidenciaSeleccionada.setEstado(nuevoEstado);
             actualizarBotonesEstado(nuevoEstado);
             cargarIncidencias();
         } else {
-            mostrarAlerta("Error", "No se pudo actualizar el estado.", Alert.AlertType.ERROR);
+            com.example.aedusapp.utils.ui.ToastNotification.error(btnExportarCSV.getScene().getWindow(), "No se pudo actualizar el estado.");
         }
     }
 
@@ -526,7 +554,4 @@ public class MonitorizacionController {
         }
     }
 
-    private void mostrarAlerta(String titulo, String msg, Alert.AlertType tipo) {
-        com.example.aedusapp.utils.ui.AlertUtils.showAlert(tipo, titulo, msg);
-    }
 }

@@ -16,6 +16,9 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import com.example.aedusapp.utils.config.SessionManager;
+import com.example.aedusapp.models.Usuario;
+import com.example.aedusapp.database.daos.UsuarioDAO;
 
 public class SplashScreenController {
 
@@ -76,7 +79,9 @@ public class SplashScreenController {
         lblStatus.textProperty().bind(loadTask.messageProperty());
         progressBar.progressProperty().bind(loadTask.progressProperty());
 
-        loadTask.setOnSucceeded(e -> transitionToLogin());
+        loadTask.setOnSucceeded(e -> {
+            checkAutoLogin();
+        });
         loadTask.setOnFailed(e -> {
             lblStatus.textProperty().unbind();
             lblStatus.setText("Error al iniciar: " + loadTask.getException().getMessage());
@@ -84,6 +89,51 @@ public class SplashScreenController {
         });
 
         new Thread(loadTask).start();
+    }
+
+    private void checkAutoLogin() {
+        String savedId = SessionManager.getInstance().getSavedUserId();
+        if (savedId != null) {
+            lblStatus.textProperty().unbind();
+            lblStatus.setText("Reconectando sesión...");
+            Task<Usuario> autoLoginTask = new Task<>() {
+                @Override protected Usuario call() throws Exception {
+                    return new UsuarioDAO().getUserById(savedId);
+                }
+            };
+            autoLoginTask.setOnSucceeded(ev -> {
+                Usuario user = autoLoginTask.getValue();
+                if (user != null) {
+                    SessionManager.getInstance().setUsuarioActual(user);
+                    com.example.aedusapp.services.logging.LogService.logLogin(user, "auto-login");
+                    transitionToMain();
+                } else {
+                    transitionToLogin();
+                }
+            });
+            autoLoginTask.setOnFailed(ev -> transitionToLogin());
+            new Thread(autoLoginTask).start();
+        } else {
+            transitionToLogin();
+        }
+    }
+
+    private void transitionToMain() {
+        FadeTransition ft = new FadeTransition(Duration.millis(800), rootPane);
+        ft.setFromValue(1.0);
+        ft.setToValue(0.0);
+        ft.setOnFinished(e -> {
+            try {
+                Stage stage = (Stage) rootPane.getScene().getWindow();
+                FXMLLoader fxmlLoader = new FXMLLoader(MainApp.class.getResource("views/general/main.fxml"));
+                Scene scene = new Scene(fxmlLoader.load(), 1024, 768);
+                ThemeManager.applyTheme(scene);
+                stage.setTitle("Aedus App - Dashboard");
+                stage.setScene(scene);
+                stage.centerOnScreen();
+            } catch (Exception ex) { ex.printStackTrace(); }
+        });
+        ft.play();
     }
 
     private void transitionToLogin() {
@@ -96,9 +146,7 @@ public class SplashScreenController {
                 FXMLLoader fxmlLoader = new FXMLLoader(MainApp.class.getResource("views/auth/login.fxml"));
                 Scene scene = new Scene(fxmlLoader.load(), 800, 600);
                 ThemeManager.applyTheme(scene);
-                
-                // Allow resizing for the main app
-                stage.setResizable(true);
+                stage.setResizable(false); // Login usually fixed
                 stage.setScene(scene);
                 stage.centerOnScreen();
             } catch (Exception ex) {

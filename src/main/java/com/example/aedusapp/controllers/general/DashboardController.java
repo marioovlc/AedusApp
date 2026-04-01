@@ -46,6 +46,12 @@ public class DashboardController {
     private VBox achievementsContainer; // Contenedor para los checks de logros
     @FXML
     private VBox missionsContainer;
+    @FXML
+    private VBox kpiTotal;
+    @FXML
+    private VBox kpiPendientes;
+    @FXML
+    private VBox kpiResueltas;
 
     private com.example.aedusapp.models.Usuario currentUser;
 
@@ -68,6 +74,15 @@ public class DashboardController {
     public void initialize() {
         // Iniciar carga de datos en segundo plano
         cargarDatosAsincrono();
+        
+        kpiTotal.setOnMouseClicked(e -> MainController.instance.navigateToMonitorizacion("Todos"));
+        kpiPendientes.setOnMouseClicked(e -> MainController.instance.navigateToMonitorizacion("NO LEIDO"));
+        kpiResueltas.setOnMouseClicked(e -> MainController.instance.navigateToMonitorizacion("ACABADO"));
+        
+        // Efecto visual al pasar el raton (cursor hand)
+        kpiTotal.setCursor(javafx.scene.Cursor.HAND);
+        kpiPendientes.setCursor(javafx.scene.Cursor.HAND);
+        kpiResueltas.setCursor(javafx.scene.Cursor.HAND);
     }
 
     public void setUsuarioActual(com.example.aedusapp.models.Usuario user) {
@@ -139,6 +154,9 @@ public class DashboardController {
         lblIncidenciasResueltas.setText(String.valueOf(resueltas));
 
         // 2. Actualizar Gráficos
+        barChartCategorias.getXAxis().setTickLabelRotation(-45);
+        lineChartTendencia.getXAxis().setTickLabelRotation(-45);
+        
         actualizarGrafico(barChartCategorias, "Incidencias", data.estadisticasCategoria());
         actualizarGrafico(lineChartTendencia, "Incidencias Diarias", data.tendenciaSemanal());
 
@@ -220,8 +238,7 @@ public class DashboardController {
                 if (logueoNovedad) {
                     javafx.application.Platform.runLater(() -> {
                         currentUser.setAeducoins(currentUser.getAeducoins() + 5);
-                        com.example.aedusapp.controllers.general.MainController.showGlobalLoading(true, "¡Misión completada: Inicio de sesión diario (+5 Aedus)!");
-                        new Thread(() -> { try { Thread.sleep(2000); } catch(Exception ignored){} javafx.application.Platform.runLater(()->com.example.aedusapp.controllers.general.MainController.showGlobalLoading(false,""));}).start();
+                        com.example.aedusapp.utils.ui.ToastNotification.success(missionsContainer.getScene().getWindow(), "¡Misión completada: Inicio de sesión diario (+5 Aedus)!");
                     });
                 }
                 return null;

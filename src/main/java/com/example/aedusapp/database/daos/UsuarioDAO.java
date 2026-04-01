@@ -248,9 +248,7 @@ public class UsuarioDAO {
             fotoPerfil = rs.getString("foto_perfil"); 
             telefono = rs.getString("telefono");
             bio = rs.getString("bio");
-            if (fetchProfileData) {
-                fotoPerfilDatos = rs.getBytes("foto_perfil_datos");
-            }
+            fotoPerfilDatos = rs.getBytes("foto_perfil_datos");
         } catch (Exception ex) {} 
 
         return new Usuario(

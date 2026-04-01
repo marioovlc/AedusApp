@@ -18,9 +18,9 @@
 <ScrollPane fitToWidth="true" style="-fx-background-color: transparent;" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.aedusapp.controllers.general.DashboardController">
     <content>
         <VBox spacing="20.0" styleClass="content-area">
-            <padding>
-                <Insets bottom="30.0" left="30.0" right="30.0" top="30.0" />
-            </padding>
+                <padding>
+                    <Insets bottom="30.0" left="30.0" right="30.0" top="30.0" />
+                </padding>
 
             <!-- Header -->
             <VBox spacing="5.0">
@@ -31,7 +31,7 @@
             <!-- KPI Cards Row -->
             <HBox spacing="15.0">
                 <!-- KPI 1: Total Incidencias -->
-                <VBox styleClass="kpi-card" HBox.hgrow="ALWAYS">
+                <VBox fx:id="kpiTotal" styleClass="kpi-card" HBox.hgrow="ALWAYS">
                     <HBox alignment="CENTER_LEFT" spacing="10">
                         <FontIcon iconLiteral="fas-clipboard-list" iconSize="24" styleClass="kpi-icon, icon-blue"/>
                         <Label text="Total Incidencias" styleClass="kpi-label"/>
@@ -41,7 +41,7 @@
                 </VBox>
 
                 <!-- KPI 2: Pendientes -->
-                <VBox styleClass="kpi-card" HBox.hgrow="ALWAYS">
+                <VBox fx:id="kpiPendientes" styleClass="kpi-card" HBox.hgrow="ALWAYS">
                     <HBox alignment="CENTER_LEFT" spacing="10">
                          <FontIcon iconLiteral="fas-clock" iconSize="24" styleClass="kpi-icon, icon-orange"/>
                         <Label text="Pendientes" styleClass="kpi-label"/>
@@ -51,7 +51,7 @@
                 </VBox>
 
                 <!-- KPI 3: Resueltas -->
-                <VBox styleClass="kpi-card" HBox.hgrow="ALWAYS">
+                <VBox fx:id="kpiResueltas" styleClass="kpi-card" HBox.hgrow="ALWAYS">
                     <HBox alignment="CENTER_LEFT" spacing="10">
                         <FontIcon iconLiteral="fas-check-circle" iconSize="24" styleClass="kpi-icon, icon-green"/>
                         <Label text="Resueltas" styleClass="kpi-label"/>
@@ -142,6 +142,6 @@
                  </VBox>
 
             </GridPane>
-        </VBox>
+            </VBox>
     </content>
 </ScrollPane>

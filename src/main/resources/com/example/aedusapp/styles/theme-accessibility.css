@@ -1,0 +1,92 @@
+/* ============================================================
+   LARGE TEXT / ACCESSIBILITY MODE
+   Applied ON TOP of any base theme as an independent layer.
+   ============================================================ */
+
+/* --- Global Font Scale --- */
+.root {
+    -fx-font-size: 15px;
+}
+
+/* --- Labels --- */
+.label {
+    -fx-font-size: 15px;
+}
+
+/* --- Page titles --- */
+.page-title {
+    -fx-font-size: 28px !important;
+}
+.page-subtitle {
+    -fx-font-size: 16px !important;
+}
+
+/* --- Sidebar buttons & labels --- */
+.sidebar-button {
+    -fx-font-size: 15px;
+    -fx-pref-height: 46px;
+}
+.sidebar-section-label {
+    -fx-font-size: 11px;
+    -fx-letter-spacing: 1.5px;
+}
+.user-name-label {
+    -fx-font-size: 15px;
+}
+.user-role-label {
+    -fx-font-size: 13px;
+}
+
+/* --- Form controls --- */
+.text-field, .password-field {
+    -fx-font-size: 15px;
+    -fx-pref-height: 42px;
+}
+.combo-box {
+    -fx-font-size: 15px;
+}
+.combo-box .list-cell {
+    -fx-font-size: 15px;
+    -fx-padding: 8 12;
+}
+.input-label {
+    -fx-font-size: 13px;
+}
+
+/* --- Buttons --- */
+.action-button {
+    -fx-font-size: 15px;
+    -fx-pref-height: 42px;
+}
+
+/* --- Tables --- */
+.table-view {
+    -fx-font-size: 14px;
+}
+.table-view .column-header .label {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+.table-row-cell {
+    -fx-pref-height: 42px;
+}
+
+/* --- Dashboard cards --- */
+.stat-value {
+    -fx-font-size: 36px !important;
+}
+.stat-title {
+    -fx-font-size: 14px;
+}
+.dashboard-card .label {
+    -fx-font-size: 15px;
+}
+
+/* --- CheckBox --- */
+.check-box {
+    -fx-font-size: 15px;
+}
+.check-box .box {
+    -fx-min-width: 20px;
+    -fx-min-height: 20px;
+}

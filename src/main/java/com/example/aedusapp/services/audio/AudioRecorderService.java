@@ -1,22 +1,34 @@
 package com.example.aedusapp.services.audio;
 
+import com.example.aedusapp.utils.ConcurrencyManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.sound.sampled.*;
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class AudioRecorderService {
+    private static final Logger logger = LoggerFactory.getLogger(AudioRecorderService.class);
     private TargetDataLine targetLine;
     private File audioFile;
-    private Thread recordThread;
-    private volatile boolean recording = false;
+    private final AtomicBoolean recording = new AtomicBoolean(false);
 
-    public void startRecording() {
+    /**
+     * Interface to receive real-time updates from the recorder.
+     */
+    public interface RecordingListener {
+        void onAudioLevel(double level); // Level from 0.0 to 1.0
+    }
+
+    public void startRecording(RecordingListener listener) {
         try {
             AudioFormat format = new AudioFormat(16000, 16, 1, true, false);
             DataLine.Info info = new DataLine.Info(TargetDataLine.class, format);
 
             if (!AudioSystem.isLineSupported(info)) {
-                 System.out.println("Microphone not supported");
+                 logger.error("Microphone line not supported.");
                  return;
             }
 
@@ -24,50 +36,76 @@ public class AudioRecorderService {
             targetLine.open(format);
             targetLine.start();
 
-            recording = true;
+            recording.set(true);
             File dir = new File("uploads/audio");
             if (!dir.exists()) dir.mkdirs();
             
             audioFile = new File(dir, "audio_msg_" + System.currentTimeMillis() + ".wav");
 
-            recordThread = new Thread(() -> {
+            ConcurrencyManager.submit(() -> {
                 try (AudioInputStream ais = new AudioInputStream(targetLine)) {
-                    AudioSystem.write(ais, AudioFileFormat.Type.WAVE, audioFile);
+                    byte[] buffer = new byte[1024];
+                    logger.info("Recording to file: {}", audioFile.getAbsolutePath());
+                    
+                    // We need a specific loop to calculate levels if listener is provided
+                    if (listener != null) {
+                        try (java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
+                            while (recording.get()) {
+                                int count = targetLine.read(buffer, 0, buffer.length);
+                                if (count > 0) {
+                                    out.write(buffer, 0, count);
+                                    double peak = calculatePeak(buffer, count);
+                                    listener.onAudioLevel(peak);
+                                }
+                            }
+                            // Save the collected audio to file
+                            try (AudioInputStream finalStream = new AudioInputStream(
+                                    new java.io.ByteArrayInputStream(out.toByteArray()), format, out.size() / format.getFrameSize())) {
+                                AudioSystem.write(finalStream, AudioFileFormat.Type.WAVE, audioFile);
+                            }
+                        }
+                    } else {
+                        AudioSystem.write(ais, AudioFileFormat.Type.WAVE, audioFile);
+                    }
                 } catch (IOException e) {
-                    if (recording) e.printStackTrace(); 
+                    if (recording.get()) {
+                        logger.error("IO Error during recording: {}", e.getMessage(), e);
+                    }
                 }
             });
-            recordThread.start();
 
         } catch (LineUnavailableException ex) {
-            ex.printStackTrace();
+            logger.error("Microphone line unavailable: {}", ex.getMessage(), ex);
         }
     }
 
+    private double calculatePeak(byte[] buffer, int count) {
+        int max = 0;
+        for (int i = 0; i < count; i += 2) {
+            short sample = (short) ((buffer[i + 1] << 8) | (buffer[i] & 0xff));
+            max = Math.max(max, Math.abs(sample));
+        }
+        return Math.min(1.0, (double) max / Short.MAX_VALUE);
+    }
+
     public File stopRecording() {
-        recording = false;
+        if (!recording.get()) return null;
+        recording.set(false);
         if (targetLine != null) {
             targetLine.stop();
             targetLine.close();
-        }
-        if (recordThread != null) {
-            try {
-                recordThread.join(2000); // Allow more time for flushing
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            logger.info("Recording stopped.");
         }
         return audioFile;
     }
 
     public void playAudio(String filePath, Runnable onStart, Runnable onEnd) {
         if (filePath == null || filePath.isEmpty()) {
-            System.err.println("No audio path provided for playback.");
+            logger.warn("No audio path provided for playback.");
             return;
         }
-        new Thread(() -> {
-            AudioInputStream audioStream = null;
-            Clip clip = null;
+
+        ConcurrencyManager.submit(() -> {
             try {
                 File file = new File(filePath);
                 if (!file.exists()) {
@@ -75,44 +113,33 @@ public class AudioRecorderService {
                 }
 
                 if (!file.exists()) {
-                    System.err.println("Audio file NOT found: " + filePath);
+                    logger.error("Audio file NOT found: {}", filePath);
+                    if (onEnd != null) onEnd.run();
                     return;
                 }
                 
-                System.out.println("Attempting to play: " + file.getAbsolutePath());
-                audioStream = AudioSystem.getAudioInputStream(file);
-                clip = AudioSystem.getClip();
-                
-                final AudioInputStream finalStream = audioStream;
-                final Clip finalClip = clip;
-                final Runnable finalOnEnd = onEnd;
-                
-                clip.addLineListener(event -> {
-                    if (event.getType() == LineEvent.Type.STOP) {
-                        try {
-                            finalClip.close();
-                            finalStream.close();
-                            System.out.println("Playback finished and resources released.");
-                            if (finalOnEnd != null) finalOnEnd.run();
-                        } catch (IOException e) {
-                            e.printStackTrace();
+                logger.info("Playing audio: {}", file.getAbsolutePath());
+                try (AudioInputStream audioStream = AudioSystem.getAudioInputStream(file);
+                     Clip clip = AudioSystem.getClip()) {
+                    
+                    clip.addLineListener(event -> {
+                        if (event.getType() == LineEvent.Type.STOP) {
+                            logger.debug("Playback finished.");
+                            if (onEnd != null) onEnd.run();
                         }
-                    }
-                });
+                    });
 
-                clip.open(audioStream);
-                if (onStart != null) onStart.run();
-                clip.start();
-                
+                    clip.open(audioStream);
+                    if (onStart != null) onStart.run();
+                    clip.start();
+                    
+                    // Wait until playback finished
+                    Thread.sleep(clip.getMicrosecondLength() / 1000 + 100);
+                }
             } catch (Exception e) {
-                System.err.println("Playback ERROR for file " + filePath + ": " + e.getMessage());
-                e.printStackTrace();
+                logger.error("Playback ERROR for file {}: {}", filePath, e.getMessage());
                 if (onEnd != null) onEnd.run();
-                try {
-                    if (clip != null) clip.close();
-                    if (audioStream != null) audioStream.close();
-                } catch (Exception ignored) {}
             }
-        }).start();
+        });
     }
 }

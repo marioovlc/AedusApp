@@ -7,6 +7,7 @@ import com.example.aedusapp.services.audio.AudioRecorderService;
 import com.example.aedusapp.services.hub.IConnectHubService;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
@@ -81,9 +82,18 @@ public class MessageRenderer {
         }
 
         // --- Shared Ticket Card ---
-        if (m.getTicketLinkId() != null && m.getTicketLinkId() > 0) {
+        Integer ticketLinkId = m.getTicketLinkId();
+        if ((ticketLinkId == null || ticketLinkId <= 0) && m.getTexto() != null && m.getTexto().startsWith("[TICKET_LINK]:")) {
+            try {
+                String idStr = m.getTexto().split(":")[1].replace("]", "").trim();
+                ticketLinkId = Integer.parseInt(idStr);
+            } catch (Exception ignored) {}
+        }
+
+        if (ticketLinkId != null && ticketLinkId > 0) {
+            final int idToFetch = ticketLinkId;
             Task<Incidencia> ticketTask = new Task<>() {
-                @Override protected Incidencia call() { return hubService.getTicketById(m.getTicketLinkId()); }
+                @Override protected Incidencia call() { return hubService.getTicketById(idToFetch); }
             };
             ticketTask.setOnSucceeded(ev -> {
                 Incidencia inc = ticketTask.getValue();
@@ -97,7 +107,10 @@ public class MessageRenderer {
                     tDesc.setMaxWidth(220);
                     ticketCard.getChildren().addAll(tTitle, tDesc);
                     ticketCard.setOnMouseClicked(click -> onTicketSelect.accept(inc));
-                    Platform.runLater(() -> { if (bubble.getChildren().size() > 1) bubble.getChildren().add(1, ticketCard); else bubble.getChildren().add(ticketCard); });
+                    Platform.runLater(() -> { 
+                        if (bubble.getChildren().size() > 1) bubble.getChildren().add(1, ticketCard); 
+                        else bubble.getChildren().add(ticketCard); 
+                    });
                 }
             });
             com.example.aedusapp.utils.ConcurrencyManager.submit(ticketTask);
@@ -121,17 +134,46 @@ public class MessageRenderer {
 
         // Audio Attachment
         if (m.getAudioUrl() != null && !m.getAudioUrl().isEmpty()) {
-            Button btnPlay = new Button("▶ Reproducir Voz");
-            btnPlay.getStyleClass().add("action-button");
+            HBox audioBubble = new HBox(10);
+            audioBubble.setAlignment(Pos.CENTER_LEFT);
+            audioBubble.getStyleClass().add("audio-message-container");
+            audioBubble.setPadding(new Insets(5, 10, 5, 10));
+            audioBubble.setStyle("-fx-background-color: rgba(0,0,0,0.05); -fx-background-radius: 15;");
+
+            Button btnPlay = new Button("▶");
+            btnPlay.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-background-radius: 50%; -fx-min-width: 30; -fx-min-height: 30; -fx-max-width: 30; -fx-max-height: 30; -fx-font-size: 12px;");
+            
+            Label lblDuration = new Label("Mensaje de Voz");
+            String audioLabelColor;
+            if (m.isSoporte()) audioLabelColor = "#854d0e";
+            else audioLabelColor = isMe ? "#e2edf9" : "#94a3b8";
+            lblDuration.setStyle("-fx-text-fill: " + audioLabelColor + "; -fx-font-size: 11px;");
+
             btnPlay.setOnAction(e -> audioService.playAudio(m.getAudioUrl(), 
-                () -> Platform.runLater(() -> btnPlay.setText("\ud83d\udd0a Reproduciendo...")),
-                () -> Platform.runLater(() -> btnPlay.setText("\u25b6 Reproducir Voz"))));
-            bubble.getChildren().add(btnPlay);
+                () -> Platform.runLater(() -> {
+                    btnPlay.setText("⏸");
+                    btnPlay.setStyle("-fx-background-color: #ef4444; -fx-text-fill: white; -fx-background-radius: 50%; -fx-min-width: 30; -fx-min-height: 30; -fx-max-width: 30; -fx-max-height: 30; -fx-font-size: 12px;");
+                    lblDuration.setText("Reproduciendo...");
+                }),
+                () -> Platform.runLater(() -> {
+                    btnPlay.setText("▶");
+                    btnPlay.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-background-radius: 50%; -fx-min-width: 30; -fx-min-height: 30; -fx-max-width: 30; -fx-max-height: 30; -fx-font-size: 12px;");
+                    lblDuration.setText("Mensaje de Voz");
+                })));
+            
+            audioBubble.getChildren().addAll(btnPlay, lblDuration);
+            bubble.getChildren().add(audioBubble);
         }
 
         // Metadata (Time and Checks)
         Label time = new Label(new SimpleDateFormat("HH:mm").format(m.getFecha()));
-        time.setStyle("-fx-font-size: 9px; -fx-text-fill: #94a3b8;");
+        String timeColor;
+        if (m.isSoporte()) {
+            timeColor = "#854d0e"; // Dark color for yellow background
+        } else {
+            timeColor = isMe ? "#e2edf9" : "#94a3b8"; // White-ish for blue, Grey for dark
+        }
+        time.setStyle("-fx-font-size: 9px; -fx-text-fill: " + timeColor + ";");
         HBox timeRow = new HBox(5);
         timeRow.setAlignment(Pos.CENTER_RIGHT);
         timeRow.getChildren().add(time);
@@ -139,11 +181,17 @@ public class MessageRenderer {
         if (isMe) {
             if (m.isSoporte()) {
                 Label supportBadge = new Label("🔒 Soporte");
-                supportBadge.setStyle("-fx-font-size: 8px; -fx-text-fill: #ca8a04; -fx-font-weight: bold;");
+                supportBadge.setStyle("-fx-font-size: 8px; -fx-text-fill: #854d0e; -fx-font-weight: bold;");
                 timeRow.getChildren().add(supportBadge);
             }
             Label check = new Label(m.isLeido() ? "✓✓" : "✓");
-            check.setStyle("-fx-font-size: 10px; -fx-text-fill: " + (m.isLeido() ? "#3b82f6" : "#94a3b8") + ";");
+            String checkColor;
+            if (m.isSoporte()) {
+                checkColor = m.isLeido() ? "#1d4ed8" : "#854d0e";
+            } else {
+                checkColor = m.isLeido() ? "#a5f3fc" : "#e2edf9"; // Bright cyan for read on blue, White-ish for unread
+            }
+            check.setStyle("-fx-font-size: 10px; -fx-text-fill: " + checkColor + ";");
             timeRow.getChildren().add(check);
         }
         bubble.getChildren().add(timeRow);

@@ -471,10 +471,19 @@
     -fx-background-radius: 18 18 2 18;
 }
 
+.chat-bubble-other,
 .chat-bubble-others {
     -fx-background-color: #1c2d47;
     -fx-alignment: CENTER_LEFT;
     -fx-background-radius: 18 18 18 2;
+}
+
+.chat-bubble-support {
+    -fx-background-color: #fef9c3;
+    -fx-border-color: #eab308;
+    -fx-border-width: 0 0 0 4;
+    -fx-background-radius: 12 12 12 2;
+    -fx-padding: 10 15;
 }
 
 .chat-time {
@@ -942,14 +951,13 @@
 /* ── Tarjetas Incidencias ── */
 .incidencia-card {
     -fx-background-color: #111f36;
-    -fx-background-radius: 14;
-    -fx-padding: 20 22 20 20;
-    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 10, 0, 0, 2);
-}
-.incidencia-card:hover {
-    -fx-background-color: #152236;
-    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 18, 0, 0, 6);
-    -fx-translate-y: -3;
+    -fx-background-radius: 12;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.3), 10, 0, 0, 2);
+    -fx-padding: 22;
+    -fx-spacing: 14;
+    -fx-border-color: #1c2d47;
+    -fx-border-width: 1;
+    -fx-border-radius: 12;
 }
 .stepper-circle-inactive {
     -fx-background-color: #1c2d47;

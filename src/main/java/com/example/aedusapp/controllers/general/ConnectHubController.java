@@ -7,6 +7,9 @@ import com.example.aedusapp.services.ai.AIService;
 import com.example.aedusapp.services.audio.AudioRecorderService;
 import com.example.aedusapp.services.media.PostImagesService;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
@@ -23,6 +26,7 @@ import java.sql.Timestamp;
 import java.util.*;
 
 public class ConnectHubController {
+    private static final Logger logger = LoggerFactory.getLogger(ConnectHubController.class);
 
     // --- LEFT PANE ---
     @FXML
@@ -121,23 +125,32 @@ public class ConnectHubController {
 
     private final AIService aiService = new AIService();
 
-    private CheckBox chkSoporte;
+    private Button btnSoporteToggle;
     private Button btnCompartirEnChat;
 
     // Audio recording
-    private AudioRecorderService audioService = new AudioRecorderService();
+    private final AudioRecorderService audioService = new AudioRecorderService();
     private File recordedAudioFile;
+    private javafx.animation.Timeline recordingTimeline;
+    private int recordingSeconds = 0;
+
+    // Support Mode
+    private boolean isSupportModeActive = false;
+    private static final String SUPPORT_COLOR = "#fef9c3"; // Soft gold post-it color
+    private static final String SUPPORT_BORDER = "#eab308";
 
     @FXML
     public void initialize() {
         btnEnviar.setOnAction(e -> sendMessage());
         btnAdjuntar.setOnAction(e -> attachImage());
 
-        // Dynamic Checkbox for Support Memos inserted before the Send button
-        chkSoporte = new CheckBox("Soporte");
-        chkSoporte.setVisible(false);
-        chkSoporte.setManaged(false);
-        chkSoporte.setStyle("-fx-text-fill: #eab308; -fx-font-weight: bold;");
+        // Stylized Support Toggle instead of a simple CheckBox
+        btnSoporteToggle = new Button("🔓");
+        btnSoporteToggle.setStyle("-fx-background-color: transparent; -fx-text-fill: #94a3b8; -fx-font-size: 16px; -fx-cursor: hand;");
+        btnSoporteToggle.setTooltip(new Tooltip("Modo Nota Interna (Privado)"));
+        btnSoporteToggle.setVisible(false);
+        btnSoporteToggle.setManaged(false);
+        btnSoporteToggle.setOnAction(e -> toggleSupportMode());
 
         // Dynamic Share Button for in-chat sharing
         btnCompartirEnChat = new Button("🚀 Compartir Ticket");
@@ -150,14 +163,21 @@ public class ConnectHubController {
         Platform.runLater(() -> {
             if (txtMensaje.getParent() instanceof HBox) {
                 HBox parent = (HBox) txtMensaje.getParent();
-                int btnIndex = parent.getChildren().indexOf(btnEnviar);
-                if (btnIndex >= 0) {
-                    parent.getChildren().add(btnIndex, chkSoporte);
-                    parent.getChildren().add(btnIndex, btnCompartirEnChat);
-                } else {
-                    parent.getChildren().add(chkSoporte);
-                    parent.getChildren().add(btnCompartirEnChat);
+                int msgIndex = parent.getChildren().indexOf(txtMensaje);
+                if (msgIndex >= 0) {
+                    parent.getChildren().add(msgIndex, btnSoporteToggle);
+                    parent.getChildren().add(msgIndex + 2, btnCompartirEnChat);
                 }
+            }
+
+            // Keyboard Shortcut: Alt + S to toggle Support Mode
+            if (txtMensaje.getScene() != null) {
+                txtMensaje.setOnKeyPressed(event -> {
+                    if (event.isAltDown() && event.getCode().toString().equals("S")) {
+                        toggleSupportMode();
+                        event.consume();
+                    }
+                });
             }
         });
 
@@ -321,7 +341,7 @@ public class ConnectHubController {
                                     protected Void call() {
                                         String url = PostImagesService.uploadImage(f);
                                         if (url != null) {
-                                            boolean isSoportePrivado = chkSoporte != null && chkSoporte.isSelected();
+                                            boolean isSoportePrivado = isSupportModeActive;
                                             if (incidenciaActual != null) {
                                                 hubService.sendTicketMessage(incidenciaActual.getId(), usuarioActual.getId(),
                                                         "Imagen adjunta", url, null, isSoportePrivado);
@@ -383,7 +403,6 @@ public class ConnectHubController {
             com.example.aedusapp.services.hub.ConnectHubService.HubData<Usuario> data = task.getValue();
             todosUsuariosCache = data.items;
             
-            // Safe casts with @SuppressWarnings as we know the HubData types
             @SuppressWarnings("unchecked")
             Map<String, Timestamp> dMap = (Map<String, Timestamp>) data.dates;
             userLastActivityMap = dMap;
@@ -404,7 +423,6 @@ public class ConnectHubController {
     private void filtrarListas(String term) {
         String lower = term.toLowerCase();
 
-        // Sort and Filter tickets
         List<Incidencia> filteredTickets = todasIncidenciasCache.stream()
                 .filter(i -> i.getTitulo().toLowerCase().contains(lower) ||
                         i.getEstado().toLowerCase().contains(lower))
@@ -419,7 +437,6 @@ public class ConnectHubController {
                 .toList();
         listaTickets.getItems().setAll(filteredTickets);
 
-        // Sort and Filter users
         List<Usuario> filteredUsers = todosUsuariosCache.stream()
                 .filter(u -> u.getNombre().toLowerCase().contains(lower) ||
                         u.getEmail().toLowerCase().contains(lower))
@@ -492,9 +509,9 @@ public class ConnectHubController {
         paneDetalleTicket.setVisible(false);
         paneDetalleUsuario.setVisible(false);
 
-        if (chkSoporte != null) {
-            chkSoporte.setVisible(false);
-            chkSoporte.setManaged(false);
+        if (btnSoporteToggle != null) {
+            btnSoporteToggle.setVisible(false);
+            btnSoporteToggle.setManaged(false);
         }
         if (btnCompartirEnChat != null) {
             btnCompartirEnChat.setVisible(false);
@@ -507,30 +524,28 @@ public class ConnectHubController {
     private void seleccionarTicket(Incidencia inc) {
         isAedusAIChat = false;
         incidenciaActual = inc;
-        // Keep usuarioDestino if it's already set (to share ticket with them)
+        usuarioDestino = null;
         itemAedusAI.getStyleClass().remove("selected");
 
         lblChatDestino.setText("Ticket #" + inc.getId() + ": " + inc.getTitulo());
         lblChatStatus.setText(inc.getEstado());
 
         // Contextual buttons
-        if (chkSoporte != null) {
-            boolean isAdmin = "ADMIN".equalsIgnoreCase(usuarioActual.getRole()) || "MANTENIMIENTO".equalsIgnoreCase(usuarioActual.getRole());
-            chkSoporte.setVisible(isAdmin);
-            chkSoporte.setManaged(isAdmin);
+        boolean isAdmin = "ADMIN".equalsIgnoreCase(usuarioActual.getRole()) || "MANTENIMIENTO".equalsIgnoreCase(usuarioActual.getRole());
+        if (btnSoporteToggle != null) {
+            btnSoporteToggle.setVisible(isAdmin);
+            btnSoporteToggle.setManaged(isAdmin);
         }
         if (btnCompartirEnChat != null) {
             btnCompartirEnChat.setVisible(false);
             btnCompartirEnChat.setManaged(false);
         }
 
-        // Sharing button visibility - always visible when a ticket is selected
         if (btnCompartirTicket != null) {
             btnCompartirTicket.setVisible(true);
             btnCompartirTicket.setManaged(true);
         }
 
-        // Mark as read and refresh badge
         Task<Void> markReadTask = new Task<>() {
             @Override protected Void call() {
                 hubService.markTicketAsRead(inc.getId(), usuarioActual.getId());
@@ -540,7 +555,6 @@ public class ConnectHubController {
         markReadTask.setOnSucceeded(e -> cargarTickets());
         com.example.aedusapp.utils.ConcurrencyManager.submit(markReadTask);
 
-        // Update Right Pane
         paneDetalleTicket.setVisible(true);
         paneDetalleUsuario.setVisible(false);
 
@@ -551,14 +565,11 @@ public class ConnectHubController {
 
         if (inc.getImagenRuta() != null && !inc.getImagenRuta().isEmpty()) {
             try {
-                // Support Cloudinary URLs or local files
                 if (inc.getImagenRuta().startsWith("http")) {
                     imgDetalle.setImage(new Image(inc.getImagenRuta(), true));
                 } else {
                     File img = new File(inc.getImagenRuta());
-                    if (img.exists()) {
-                        imgDetalle.setImage(new Image(img.toURI().toString()));
-                    }
+                    if (img.exists()) imgDetalle.setImage(new Image(img.toURI().toString()));
                 }
                 vboxImagen.setVisible(true);
                 vboxImagen.setManaged(true);
@@ -580,7 +591,6 @@ public class ConnectHubController {
         usuarioDestino = user;
         itemAedusAI.getStyleClass().remove("selected");
 
-        // Hide share button when starting user chat until a ticket is selected
         if (btnCompartirTicket != null) {
             btnCompartirTicket.setVisible(false);
             btnCompartirTicket.setManaged(false);
@@ -589,17 +599,17 @@ public class ConnectHubController {
         lblChatDestino.setText(user.getNombre());
         lblChatStatus.setText(presenceManager != null && presenceManager.getUsuariosActivos().contains(user.getId()) ? "En línea" : "Desconectado");
 
-        // Contextual buttons
-        if (chkSoporte != null) {
-            chkSoporte.setVisible(false);
-            chkSoporte.setManaged(false);
+        if (btnSoporteToggle != null) {
+            btnSoporteToggle.setVisible(false);
+            btnSoporteToggle.setManaged(false);
+            isSupportModeActive = false;
+            actualizarInterfazSoporte();
         }
         if (btnCompartirEnChat != null) {
             btnCompartirEnChat.setVisible(true);
             btnCompartirEnChat.setManaged(true);
         }
 
-        // Mark as read and refresh
         Task<Void> markReadTask = new Task<>() {
             @Override protected Void call() {
                 hubService.markDirectMessagesAsRead(usuarioActual.getId(), user.getId());
@@ -609,7 +619,6 @@ public class ConnectHubController {
         markReadTask.setOnSucceeded(e -> cargarUsuarios());
         com.example.aedusapp.utils.ConcurrencyManager.submit(markReadTask);
 
-        // Update Right Pane (Profile)
         paneDetalleTicket.setVisible(false);
         paneDetalleUsuario.setVisible(true);
 
@@ -625,7 +634,6 @@ public class ConnectHubController {
             imgPerfilGrande.setImage(null);
         }
 
-        // Only editable if it's my own profile
         boolean isMe = user.getId().equals(usuarioActual.getId());
         txtPerfilTelefono.setEditable(isMe);
         txtPerfilBio.setEditable(isMe);
@@ -638,27 +646,20 @@ public class ConnectHubController {
     @FXML
     private void guardarPerfilPropio() {
         if (usuarioDestino == null) return;
-
         String tlf = txtPerfilTelefono.getText();
         if (!com.example.aedusapp.utils.DataValidator.isValidPhone(tlf)) {
-            com.example.aedusapp.utils.ui.ToastNotification.error(btnGuardarPerfil.getScene().getWindow(), 
-                "El formato del teléfono no es válido.");
+            com.example.aedusapp.utils.ui.ToastNotification.error(btnGuardarPerfil.getScene().getWindow(), "El formato del teléfono no es válido.");
             return;
         }
-
         usuarioDestino.setTelefono(tlf);
         usuarioDestino.setBio(txtPerfilBio.getText());
 
         Task<Boolean> saveTask = new Task<>() {
-            @Override
-            protected Boolean call() {
-                return hubService.actualizarUsuario(usuarioDestino);
-            }
+            @Override protected Boolean call() { return hubService.actualizarUsuario(usuarioDestino); }
         };
         saveTask.setOnSucceeded(e -> {
             if (saveTask.getValue()) {
-                com.example.aedusapp.utils.ui.ToastNotification.success(btnGuardarPerfil.getScene().getWindow(), 
-                    "Perfil actualizado con éxito.");
+                com.example.aedusapp.utils.ui.ToastNotification.success(btnGuardarPerfil.getScene().getWindow(), "Perfil actualizado.");
                 cargarUsuarios();
             }
         });
@@ -668,31 +669,18 @@ public class ConnectHubController {
     @FXML
     private void compartirTicketActual() {
         if (incidenciaActual == null) return;
-
-        Usuario target = usuarioDestino;
-
-        // If no user is selected, or if we want to change recipient, show selector
-        if (target == null) {
-            target = showRecipientSelector();
-        }
-
+        Usuario target = usuarioDestino == null ? showRecipientSelector() : usuarioDestino;
         if (target != null) {
-            final Usuario finalTarget = target;
             String texto = "Te comparto este ticket: [" + incidenciaActual.getTitulo() + "]";
             int ticketId = incidenciaActual.getId();
-
-            // Notify UI
-            if (usuarioDestino != null && usuarioDestino.getId().equals(finalTarget.getId())) {
+            if (usuarioDestino != null && usuarioDestino.getId().equals(target.getId())) {
                 addLocalMessage(texto, null, null, false, ticketId);
             } else {
-                com.example.aedusapp.utils.ui.ToastNotification.success(btnCompartirTicket.getScene().getWindow(), 
-                    "Ticket compartido con " + finalTarget.getNombre());
+                com.example.aedusapp.utils.ui.ToastNotification.success(btnCompartirTicket.getScene().getWindow(), "Ticket compartido.");
             }
-
             Task<Void> task = new Task<>() {
                 protected Void call() {
-                    hubService.sendDirectMessageWithTicket(usuarioActual.getId(), finalTarget.getId(), 
-                            "Ticket compartido: " + incidenciaActual.getTitulo(), ticketId);
+                    hubService.sendDirectMessageWithTicket(usuarioActual.getId(), target.getId(), "Ticket: " + incidenciaActual.getTitulo(), ticketId);
                     return null;
                 }
             };
@@ -704,68 +692,31 @@ public class ConnectHubController {
     private Usuario showRecipientSelector() {
         Dialog<Usuario> dialog = new Dialog<>();
         dialog.setTitle("Seleccionar Destinatario");
-        dialog.setHeaderText("Elige a quién quieres enviar el ticket:");
-        
-        // Style
-        DialogPane dialogPane = dialog.getDialogPane();
-        dialogPane.getStylesheets().addAll(btnCompartirTicket.getScene().getStylesheets());
-        dialogPane.getStyleClass().add("dialog-pane");
-
-        // UI Components
+        DialogPane dp = dialog.getDialogPane();
+        dp.getStylesheets().addAll(btnEnviar.getScene().getStylesheets());
         VBox content = new VBox(10);
         content.setPrefWidth(350);
-        content.setPadding(new Insets(10));
-
         TextField search = new TextField();
-        search.setPromptText("Buscar usuario...");
-        search.getStyleClass().add("search-field");
-
+        search.setPromptText("Buscar...");
         ListView<Usuario> list = new ListView<>();
-        list.setPrefHeight(300);
-        
-        // Reuse same cell factory as the main list
         list.setCellFactory(listaUsuarios.getCellFactory());
-
-        // Dynamic filtering
-        List<Usuario> availableUsers = todosUsuariosCache.stream()
-            .filter(u -> !u.getId().equals(usuarioActual.getId()))
-            .toList();
-        list.getItems().setAll(availableUsers);
-
-        search.textProperty().addListener((obs, oldV, newV) -> {
-            String q = newV.toLowerCase();
-            list.getItems().setAll(availableUsers.stream()
-                .filter(u -> u.getNombre().toLowerCase().contains(q) || u.getEmail().toLowerCase().contains(q))
-                .toList());
-        });
-
+        list.getItems().setAll(todosUsuariosCache.stream().filter(u -> !u.getId().equals(usuarioActual.getId())).toList());
         content.getChildren().addAll(search, list);
-        dialogPane.setContent(content);
-
-        // Buttons
-        ButtonType btnSend = new ButtonType("Compartir", ButtonBar.ButtonData.OK_DONE);
-        dialogPane.getButtonTypes().addAll(btnSend, ButtonType.CANCEL);
-
-        dialog.setResultConverter(b -> b == btnSend ? list.getSelectionModel().getSelectedItem() : null);
-
-        Optional<Usuario> result = dialog.showAndWait();
-        return result.orElse(null);
+        dp.setContent(content);
+        ButtonType btnOk = new ButtonType("Compartir", ButtonBar.ButtonData.OK_DONE);
+        dp.getButtonTypes().addAll(btnOk, ButtonType.CANCEL);
+        dialog.setResultConverter(b -> b == btnOk ? list.getSelectionModel().getSelectedItem() : null);
+        return dialog.showAndWait().orElse(null);
     }
 
     private void compartirTicketDesdeChat() {
         if (usuarioDestino == null) return;
-
         Incidencia ticket = showTicketSelector();
         if (ticket != null) {
-            String texto = "Te comparto este ticket: [" + ticket.getTitulo() + "]";
-            int ticketId = ticket.getId();
-
-            addLocalMessage(texto, null, null, false, ticketId);
-            
+            addLocalMessage("Ticket compartido: [" + ticket.getTitulo() + "]", null, null, false, ticket.getId());
             Task<Void> task = new Task<>() {
                 protected Void call() {
-                    hubService.sendDirectMessageWithTicket(usuarioActual.getId(), usuarioDestino.getId(), 
-                            "Ticket compartido: " + ticket.getTitulo(), ticketId);
+                    hubService.sendDirectMessageWithTicket(usuarioActual.getId(), usuarioDestino.getId(), "Ticket: " + ticket.getTitulo(), ticket.getId());
                     return null;
                 }
             };
@@ -777,256 +728,188 @@ public class ConnectHubController {
     private Incidencia showTicketSelector() {
         Dialog<Incidencia> dialog = new Dialog<>();
         dialog.setTitle("Seleccionar Ticket");
-        dialog.setHeaderText("Elige qué ticket quieres compartir:");
-        
-        DialogPane dialogPane = dialog.getDialogPane();
-        dialogPane.getStylesheets().addAll(btnEnviar.getScene().getStylesheets());
-        dialogPane.getStyleClass().add("dialog-pane");
-
-        // UI Components
+        DialogPane dp = dialog.getDialogPane();
+        dp.getStylesheets().addAll(btnEnviar.getScene().getStylesheets());
         VBox content = new VBox(10);
         content.setPrefWidth(400);
-        content.setPadding(new Insets(10));
-
-        TextField search = new TextField();
-        search.setPromptText("Buscar ticket por título o estado...");
-        search.getStyleClass().add("search-field");
-
         ListView<Incidencia> list = new ListView<>();
-        list.setPrefHeight(350);
         list.setCellFactory(listaTickets.getCellFactory());
-
-        // Fill with current cache
         list.getItems().setAll(todasIncidenciasCache);
-
-        search.textProperty().addListener((obs, oldV, newV) -> {
-            String q = newV.toLowerCase();
-            list.getItems().setAll(todasIncidenciasCache.stream()
-                .filter(i -> i.getTitulo().toLowerCase().contains(q) || i.getEstado().toLowerCase().contains(q))
-                .toList());
-        });
-
-        content.getChildren().addAll(search, list);
-        dialogPane.setContent(content);
-
-        ButtonType btnSelect = new ButtonType("Compartir", ButtonBar.ButtonData.OK_DONE);
-        dialogPane.getButtonTypes().addAll(btnSelect, ButtonType.CANCEL);
-
-        dialog.setResultConverter(b -> b == btnSelect ? list.getSelectionModel().getSelectedItem() : null);
-
-        Optional<Incidencia> result = dialog.showAndWait();
-        return result.orElse(null);
+        content.getChildren().add(list);
+        dp.setContent(content);
+        ButtonType btnOk = new ButtonType("Compartir", ButtonBar.ButtonData.OK_DONE);
+        dp.getButtonTypes().addAll(btnOk, ButtonType.CANCEL);
+        dialog.setResultConverter(b -> b == btnOk ? list.getSelectionModel().getSelectedItem() : null);
+        return dialog.showAndWait().orElse(null);
     }
 
     private void loadChatHistory() {
         chatContainer.getChildren().clear();
         Task<List<Mensaje>> loadTask = new Task<>() {
-            @Override
-            protected List<Mensaje> call() {
-                if (incidenciaActual != null) {
-                    return hubService.getTicketMessages(incidenciaActual.getId(), 100);
-                } else if (usuarioDestino != null) {
-                    return hubService.getDirectMessages(usuarioActual.getId(), usuarioDestino.getId(), 100);
-                }
+            @Override protected List<Mensaje> call() {
+                if (incidenciaActual != null) return hubService.getTicketMessages(incidenciaActual.getId(), 100);
+                if (usuarioDestino != null) return hubService.getDirectMessages(usuarioActual.getId(), usuarioDestino.getId(), 100);
                 return new ArrayList<>();
             }
         };
         loadTask.setOnSucceeded(e -> {
-            for (Mensaje m : loadTask.getValue()) {
-                addMessageToChat(m);
-            }
+            for (Mensaje m : loadTask.getValue()) addMessageToChat(m);
         });
         com.example.aedusapp.utils.ConcurrencyManager.submit(loadTask);
     }
 
+    @FXML
     private void sendMessage() {
         String texto = txtMensaje.getText().trim();
-        if (texto.isEmpty())
-            return;
-
+        if (texto.isEmpty()) return;
         txtMensaje.clear();
-        boolean isSoportePrivado = chkSoporte != null && chkSoporte.isSelected();
-        if (chkSoporte != null)
-            chkSoporte.setSelected(false); // reset after send
+        boolean isSoportePrivado = isSupportModeActive;
 
         if (isAedusAIChat) {
-            // Echo user message
             addLocalMessage(texto, null, null, false, null);
             lblChatStatus.setText("Escribiendo...");
-
-            // Call AI
             Task<String> aiTask = new Task<>() {
-                @Override
-                protected String call() {
-                    return aiService.askAI("Tengo la siguiente pregunta sobre AedusApp: " + texto);
-                }
+                protected String call() { return aiService.askAI("Pregunta: " + texto); }
             };
             aiTask.setOnSucceeded(e -> {
                 lblChatStatus.setText("En línea");
                 addSystemMessage(aiTask.getValue());
             });
-            aiTask.setOnFailed(e -> {
-                lblChatStatus.setText("Error");
-                addSystemMessage("Lo siento, tuve un problema al procesar tu solicitud.");
-            });
             new Thread(aiTask).start();
-
         } else if (usuarioDestino != null) {
-            // Direct Chat message
             addLocalMessage(texto, null, null, false, null);
             Task<Void> sendTask = new Task<>() {
-                @Override
-                protected Void call() {
-                    hubService.sendDirectMessageWithAttachment(usuarioActual.getId(), usuarioDestino.getId(), texto, null);
-                    return null;
-                }
+                protected Void call() { hubService.sendDirectMessageWithAttachment(usuarioActual.getId(), usuarioDestino.getId(), texto, null); return null; }
             };
             sendTask.setOnSucceeded(e -> cargarUsuarios());
             new Thread(sendTask).start();
-
         } else if (incidenciaActual != null) {
-            // Ticket Chat message
             addLocalMessage(texto, null, null, isSoportePrivado, null);
             Task<Void> sendTask = new Task<>() {
-                @Override
-                protected Void call() {
-                    hubService.sendTicketMessage(incidenciaActual.getId(), usuarioActual.getId(), texto, null, null,
-                            isSoportePrivado);
-                    return null;
-                }
+                protected Void call() { hubService.sendTicketMessage(incidenciaActual.getId(), usuarioActual.getId(), texto, null, null, isSoportePrivado); return null; }
             };
             new Thread(sendTask).start();
         }
     }
 
     private void attachImage() {
-        if (isAedusAIChat) {
-            addSystemMessage("Lo siento, Aedus AI todavía no puede ver imágenes. Escríbeme tu duda en texto.");
-            return;
-        }
-
-        FileChooser fileChooser = new FileChooser();
-        fileChooser.getExtensionFilters().addAll(
-                new FileChooser.ExtensionFilter("Imágenes", "*.png", "*.jpg", "*.gif"));
-        File imgFile = fileChooser.showOpenDialog(btnAdjuntar.getScene().getWindow());
-
-        if (imgFile != null) {
-            lblChatStatus.setText("Subiendo imagen...");
-            Task<Void> uploadTask = new Task<>() {
-                @Override
+        if (isAedusAIChat) return;
+        FileChooser fc = new FileChooser();
+        fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("Imágenes", "*.png", "*.jpg", "*.gif"));
+        File f = fc.showOpenDialog(btnAdjuntar.getScene().getWindow());
+        if (f != null) {
+            lblChatStatus.setText("Subiendo...");
+            Task<Void> task = new Task<>() {
                 protected Void call() {
-                    String url = PostImagesService.uploadImage(imgFile);
+                    String url = PostImagesService.uploadImage(f);
                     if (url != null) {
-                        boolean isSoportePrivado = chkSoporte != null && chkSoporte.isSelected();
-                        if (incidenciaActual != null) {
-                            hubService.sendTicketMessage(incidenciaActual.getId(), usuarioActual.getId(),
-                                    "Imagen enviada", url, null, isSoportePrivado);
-                        } else if (usuarioDestino != null) {
-                            hubService.sendDirectMessageWithAttachment(usuarioActual.getId(), usuarioDestino.getId(),
-                                    "Imagen enviada", url);
-                        }
+                        if (incidenciaActual != null) hubService.sendTicketMessage(incidenciaActual.getId(), usuarioActual.getId(), "Imagen enviada", url, null, isSupportModeActive);
+                        else if (usuarioDestino != null) hubService.sendDirectMessageWithAttachment(usuarioActual.getId(), usuarioDestino.getId(), "Imagen enviada", url);
                     }
                     return null;
                 }
             };
-            uploadTask.setOnSucceeded(e -> {
-                lblChatStatus.setText("En línea");
-                loadChatHistory();
-            });
-            new Thread(uploadTask).start();
+            task.setOnSucceeded(e -> { lblChatStatus.setText("En línea"); loadChatHistory(); });
+            new Thread(task).start();
+        }
+    }
+
+    @FXML
+    private void toggleSupportMode() {
+        isSupportModeActive = !isSupportModeActive;
+        logger.info("Support Mode toggled: {}", isSupportModeActive);
+        actualizarInterfazSoporte();
+    }
+
+    private void actualizarInterfazSoporte() {
+        if (isSupportModeActive) {
+            btnSoporteToggle.setText("🔒");
+            btnSoporteToggle.setStyle("-fx-background-color: transparent; -fx-text-fill: " + SUPPORT_BORDER + "; -fx-font-size: 16px; -fx-cursor: hand;");
+            txtMensaje.setStyle("-fx-background-color: " + SUPPORT_COLOR + "; -fx-border-color: " + SUPPORT_BORDER + "; -fx-border-radius: 20; -fx-background-radius: 20; -fx-padding: 8; -fx-text-fill: #000000; -fx-prompt-text-fill: #71717a;");
+            txtMensaje.setPromptText("Escribe una nota técnica interna...");
+            btnEnviar.setText("Guardar Nota");
+            btnEnviar.setStyle("-fx-background-color: " + SUPPORT_BORDER + "; -fx-text-fill: white; -fx-font-weight: bold;");
+        } else {
+            btnSoporteToggle.setText("🔓");
+            btnSoporteToggle.setStyle("-fx-background-color: transparent; -fx-text-fill: #94a3b8; -fx-font-size: 16px; -fx-cursor: hand;");
+            txtMensaje.setStyle("-fx-font-size: 13px; -fx-padding: 8; -fx-background-radius: 20;");
+            txtMensaje.setPromptText("Escribe un mensaje...");
+            btnEnviar.setText("Enviar");
+            btnEnviar.setStyle("");
         }
     }
 
     @FXML
     private void iniciarGrabacion() {
-        if (isAedusAIChat) {
-            lblRecordingStatus.setText("La IA no recibe notas de voz.");
-            lblRecordingStatus.setVisible(true);
-            return;
-        }
-
-        lblRecordingStatus.setText("🔴 Grabando...");
+        if (isAedusAIChat) return;
+        lblRecordingStatus.setText("🔴 00:00 | ○○○○○○○○○○");
         lblRecordingStatus.setVisible(true);
         btnGrabarVoz.setStyle("-fx-text-fill: white; -fx-background-color: #ef4444; -fx-font-size: 16px;");
-        audioService.startRecording();
+        recordingSeconds = 0;
+        if (recordingTimeline != null) recordingTimeline.stop();
+        recordingTimeline = new javafx.animation.Timeline(new javafx.animation.KeyFrame(javafx.util.Duration.seconds(1), ev -> {
+            recordingSeconds++;
+            actualizarLabelGrabacion(0);
+        }));
+        recordingTimeline.setCycleCount(javafx.animation.Animation.INDEFINITE);
+        recordingTimeline.play();
+        audioService.startRecording(level -> Platform.runLater(() -> actualizarLabelGrabacion(level)));
+    }
+
+    private void actualizarLabelGrabacion(double level) {
+        int mins = recordingSeconds / 60, secs = recordingSeconds % 60;
+        lblRecordingStatus.setText(String.format("🔴 %02d:%02d | %s (Mover fuera para cancelar)", mins, secs, getVolumeVisualizer(level)));
+    }
+
+    private String getVolumeVisualizer(double level) {
+        int bars = (int) (level * 10);
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < 10; i++) sb.append(i < bars ? "●" : "○");
+        return sb.toString();
     }
 
     @FXML
-    private void detenerGrabacion() {
+    private void detenerGrabacion(javafx.scene.input.MouseEvent event) {
         btnGrabarVoz.setStyle("-fx-text-fill: #ef4444; -fx-font-size: 16px;");
         lblRecordingStatus.setVisible(false);
-
-        if (isAedusAIChat)
-            return;
-
+        if (recordingTimeline != null) { recordingTimeline.stop(); recordingTimeline = null; }
+        if (isAedusAIChat) return;
+        boolean cancelled = !btnGrabarVoz.contains(event.getX(), event.getY());
         Task<File> stopTask = new Task<>() {
-            @Override
-            protected File call() {
-                return audioService.stopRecording();
-            }
+            protected File call() { return audioService.stopRecording(); }
         };
-
         stopTask.setOnSucceeded(e -> {
             recordedAudioFile = stopTask.getValue();
             if (recordedAudioFile != null) {
-                boolean isSoportePrivado = chkSoporte != null && chkSoporte.isSelected();
-
-                // Convert to relative path for portability: uploads/audio/filename.wav
-                String relativePath = "uploads" + File.separator + "audio" + File.separator
-                        + recordedAudioFile.getName();
-                System.out.println("Saving voice message with relative path: " + relativePath);
-
-                // Optimistic UI (using relative path now too)
-                addLocalMessage("Mensaje de Voz \ud83c\udfa4", null, relativePath, isSoportePrivado, null);
-
+                if (cancelled) { recordedAudioFile.delete(); return; }
+                String relativePath = "uploads" + File.separator + "audio" + File.separator + recordedAudioFile.getName();
+                addLocalMessage("Voz 🎤", null, relativePath, isSupportModeActive, null);
                 Task<Void> saveTask = new Task<>() {
-                    @Override
                     protected Void call() {
-                        if (incidenciaActual != null) {
-                            hubService.sendTicketMessage(incidenciaActual.getId(), usuarioActual.getId(),
-                                    "Mensaje de voz \ud83c\udfa4", null, relativePath, isSoportePrivado);
-                        } else if (usuarioDestino != null) {
-                            hubService.sendDirectMessageWithAttachment(usuarioActual.getId(), usuarioDestino.getId(),
-                                    "Mensaje de voz \ud83c\udfa4", relativePath);
-                        }
+                        if (incidenciaActual != null) hubService.sendTicketMessage(incidenciaActual.getId(), usuarioActual.getId(), "Voz 🎤", null, relativePath, isSupportModeActive);
+                        else if (usuarioDestino != null) hubService.sendDirectMessageWithAttachment(usuarioActual.getId(), usuarioDestino.getId(), "Voz 🎤", relativePath);
                         return null;
                     }
                 };
                 com.example.aedusapp.utils.ConcurrencyManager.submit(saveTask);
             }
         });
-
-                com.example.aedusapp.utils.ConcurrencyManager.submit(stopTask);
+        com.example.aedusapp.utils.ConcurrencyManager.submit(stopTask);
     }
 
-    // --- Message Rendering ---
-
     private void addLocalMessage(String text, String imageUrl, String audioUrl, boolean isSoporte, Integer ticketLinkId) {
-        Mensaje m = new Mensaje(
-                0,
-                incidenciaActual != null ? incidenciaActual.getId() : 0,
-                usuarioActual.getId(),
-                usuarioActual.getNombre(),
-                null,
-                text,
-                imageUrl,
-                new java.sql.Timestamp(System.currentTimeMillis()),
-                false,
-                isSoporte);
-        m.setAudioUrl(audioUrl);
-        m.setTicketLinkId(ticketLinkId);
+        Mensaje m = new Mensaje(0, incidenciaActual != null ? incidenciaActual.getId() : 0, usuarioActual.getId(), usuarioActual.getNombre(), null, text, imageUrl, new java.sql.Timestamp(System.currentTimeMillis()), false, isSoporte);
+        m.setAudioUrl(audioUrl); m.setTicketLinkId(ticketLinkId);
         addMessageToChat(m);
     }
 
     private void addSystemMessage(String text) {
-        Mensaje m = new Mensaje(0, 0, "system", "Aedus AI", null, text, null,
-                new java.sql.Timestamp(System.currentTimeMillis()), false, false);
+        Mensaje m = new Mensaje(0, 0, "system", "Aedus AI", null, text, null, new java.sql.Timestamp(System.currentTimeMillis()), false, false);
         addMessageToChat(m);
     }
 
     private void addMessageToChat(Mensaje m) {
-        com.example.aedusapp.utils.hub.MessageRenderer.render(
-            m, chatContainer, usuarioActual, incidenciaActual, hubService, audioService, this::seleccionarTicket
-        );
+        com.example.aedusapp.utils.hub.MessageRenderer.render(m, chatContainer, usuarioActual, incidenciaActual, hubService, audioService, this::seleccionarTicket);
     }
+
 }

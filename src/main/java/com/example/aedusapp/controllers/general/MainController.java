@@ -55,7 +55,7 @@ public class MainController {
     private Label lblAeduCoins;
 
     @FXML
-    private javafx.scene.layout.BorderPane mainBorderPane;
+    public javafx.scene.layout.BorderPane mainBorderPane;
     @FXML
     private javafx.scene.layout.VBox dashboardView;
     @FXML
@@ -87,6 +87,9 @@ public class MainController {
         instance = this;
         // When the theme changes later, refresh the logo too
         onThemeChanged = () -> ThemeManager.applyLogo(logoView);
+ 
+        // Configurar listener para pantalla completa (F11)
+        javafx.application.Platform.runLater(this::setupFullScreenListener);
 
         // Inicializar el usuario desde la sesión global
         Usuario sessionUser = com.example.aedusapp.utils.config.SessionManager.getInstance().getUsuarioActual();
@@ -110,6 +113,7 @@ public class MainController {
                 "monitorizacion", btnMonitorizacion));
         btnConfiguracion.setOnAction(e -> cargarVista("/com/example/aedusapp/views/general/configuracion.fxml",
                 "configuracion", btnConfiguracion));
+
         btnCerrarSesion.setOnAction(e -> cerrarSesion());
         if (btnTienda != null)
             btnTienda.setOnAction(e -> {
@@ -365,6 +369,14 @@ public class MainController {
             activeBtn.getStyleClass().add("active");
     }
 
+    public void navigateToMonitorizacion(String filter) {
+        cargarVista("/com/example/aedusapp/views/incidencias/monitorizacion.fxml", "monitorizacion", btnMonitorizacion);
+        Object controller = controllerCache.get("monitorizacion");
+        if (controller instanceof com.example.aedusapp.controllers.incidencias.MonitorizacionController mc) {
+            mc.setInitialFilter(filter);
+        }
+    }
+
     private void cerrarSesion() {
         if (currentUser != null)
             LogService.logLogout(currentUser);
@@ -426,5 +438,59 @@ public class MainController {
             loadingOverlay.setVisible(show);
             loadingOverlay.setManaged(show);
         });
+    }
+
+    private void setupFullScreenListener() {
+        if (mainBorderPane != null && mainBorderPane.getScene() != null) {
+            mainBorderPane.getScene().setOnKeyPressed(e -> {
+                if (e.getCode() == javafx.scene.input.KeyCode.F11) {
+                    javafx.stage.Stage stage = (javafx.stage.Stage) mainBorderPane.getScene().getWindow();
+                    stage.setFullScreen(!stage.isFullScreen());
+                }
+            });
+        }
+    }
+
+    public void refreshCurrentView(String viewId) {
+        viewCache.remove(viewId);
+        controllerCache.remove(viewId);
+        
+        String fxmlPath;
+        Button targetBtn;
+        
+        switch(viewId) {
+            case "dashboard":
+                fxmlPath = "/com/example/aedusapp/views/general/dashboard.fxml";
+                targetBtn = btnDashboard;
+                break;
+            case "incidencias":
+                fxmlPath = "/com/example/aedusapp/views/incidencias/incidencias.fxml";
+                targetBtn = btnIncidencias;
+                break;
+            case "usuarios":
+                fxmlPath = "/com/example/aedusapp/views/usuarios/admin_users.fxml";
+                targetBtn = btnUsuarios;
+                break;
+            case "monitorizacion":
+                fxmlPath = "/com/example/aedusapp/views/incidencias/monitorizacion.fxml";
+                targetBtn = btnMonitorizacion;
+                break;
+            case "tienda":
+                fxmlPath = "/com/example/aedusapp/views/tienda/tienda.fxml";
+                targetBtn = btnTienda;
+                break;
+            case "connect_hub":
+                fxmlPath = "/com/example/aedusapp/views/general/connect_hub.fxml";
+                targetBtn = btnConnectHub;
+                break;
+            case "configuracion":
+                fxmlPath = "/com/example/aedusapp/views/general/configuracion.fxml";
+                targetBtn = btnConfiguracion;
+                break;
+            default:
+                fxmlPath = "/com/example/aedusapp/views/general/dashboard.fxml";
+                targetBtn = btnDashboard;
+        }
+        cargarVista(fxmlPath, viewId, targetBtn);
     }
 }

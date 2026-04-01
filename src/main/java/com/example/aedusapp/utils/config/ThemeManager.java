@@ -10,6 +10,7 @@ public class ThemeManager {
 
     private static final String PREF_NODE = "com.example.aedusapp.preferences";
     private static final String THEME_KEY = "app_theme";
+    private static final String LARGE_TEXT_KEY = "large_text";
 
     public enum Theme {
         OSCURO("Oscuro (Predeterminado)"), 
@@ -29,13 +30,11 @@ public class ThemeManager {
     }
 
     public static void saveTheme(Theme theme) {
-        Preferences prefs = Preferences.userRoot().node(PREF_NODE);
-        prefs.put(THEME_KEY, theme.name());
+        Preferences.userRoot().node(PREF_NODE).put(THEME_KEY, theme.name());
     }
 
     public static Theme getSavedTheme() {
-        Preferences prefs = Preferences.userRoot().node(PREF_NODE);
-        String themeStr = prefs.get(THEME_KEY, Theme.OSCURO.name());
+        String themeStr = Preferences.userRoot().node(PREF_NODE).get(THEME_KEY, Theme.OSCURO.name());
         try {
             return Theme.valueOf(themeStr);
         } catch (IllegalArgumentException e) {
@@ -43,63 +42,77 @@ public class ThemeManager {
         }
     }
 
+    public static void saveLargeText(boolean enabled) {
+        Preferences.userRoot().node(PREF_NODE).putBoolean(LARGE_TEXT_KEY, enabled);
+    }
+
+    public static boolean isLargeTextEnabled() {
+        return Preferences.userRoot().node(PREF_NODE).getBoolean(LARGE_TEXT_KEY, false);
+    }
+
     public static void applyTheme(Scene scene) {
         if (scene == null) return;
-        
+
         Theme currentTheme = getSavedTheme();
-        
+
         // Asegurar que el estilo base (Oscuro) siempre esté primero
         String baseCss = MainApp.class.getResource("styles/styles.css").toExternalForm();
         if (!scene.getStylesheets().contains(baseCss)) {
-            scene.getStylesheets().add(0, baseCss); // Añadir al principio si no estaba
+            scene.getStylesheets().add(0, baseCss);
         }
-        
-        // Eliminar posibles temas previos aplicados a esta escena
-        scene.getStylesheets().removeIf(css -> css.endsWith("theme-light.css") || css.endsWith("theme-colorblind.css"));
-        
-        // Aplicar el nuevo tema al final de la lista para que sobreescriba estilos
+
+        // Eliminar temas previos
+        scene.getStylesheets().removeIf(css ->
+            css.endsWith("theme-light.css") ||
+            css.endsWith("theme-colorblind.css") ||
+            css.endsWith("theme-accessibility.css"));
+
         try {
             if (currentTheme == Theme.CLARO) {
-                String lightCss = MainApp.class.getResource("styles/theme-light.css").toExternalForm();
-                scene.getStylesheets().add(lightCss);
+                scene.getStylesheets().add(MainApp.class.getResource("styles/theme-light.css").toExternalForm());
             } else if (currentTheme == Theme.DALTONICO) {
-                String colorblindCss = MainApp.class.getResource("styles/theme-colorblind.css").toExternalForm();
-                scene.getStylesheets().add(colorblindCss);
+                scene.getStylesheets().add(MainApp.class.getResource("styles/theme-colorblind.css").toExternalForm());
+            }
+
+            // Modo Lectura: se aplica encima de cualquier tema de color
+            if (isLargeTextEnabled()) {
+                scene.getStylesheets().add(MainApp.class.getResource("styles/theme-accessibility.css").toExternalForm());
             }
         } catch (Exception e) {
-            System.err.println("Theme application failed. Missing css file?: " + e.getMessage());
+            System.err.println("Theme application failed: " + e.getMessage());
         }
     }
+
     public static void applyThemeToDialog(javafx.scene.control.DialogPane dialogPane) {
         if (dialogPane == null) return;
-        
+
         Theme currentTheme = getSavedTheme();
-        
+
         String baseCss = MainApp.class.getResource("styles/styles.css").toExternalForm();
         if (!dialogPane.getStylesheets().contains(baseCss)) {
             dialogPane.getStylesheets().add(0, baseCss);
         }
-        
-        dialogPane.getStylesheets().removeIf(css -> css.endsWith("theme-light.css") || css.endsWith("theme-colorblind.css"));
-        
+
+        dialogPane.getStylesheets().removeIf(css ->
+            css.endsWith("theme-light.css") ||
+            css.endsWith("theme-colorblind.css") ||
+            css.endsWith("theme-accessibility.css"));
+
         try {
             if (currentTheme == Theme.CLARO) {
-                String lightCss = MainApp.class.getResource("styles/theme-light.css").toExternalForm();
-                dialogPane.getStylesheets().add(lightCss);
+                dialogPane.getStylesheets().add(MainApp.class.getResource("styles/theme-light.css").toExternalForm());
             } else if (currentTheme == Theme.DALTONICO) {
-                String colorblindCss = MainApp.class.getResource("styles/theme-colorblind.css").toExternalForm();
-                dialogPane.getStylesheets().add(colorblindCss);
+                dialogPane.getStylesheets().add(MainApp.class.getResource("styles/theme-colorblind.css").toExternalForm());
+            }
+
+            if (isLargeTextEnabled()) {
+                dialogPane.getStylesheets().add(MainApp.class.getResource("styles/theme-accessibility.css").toExternalForm());
             }
         } catch (Exception e) {
-            System.err.println("Theme application failed. Missing css file?: " + e.getMessage());
+            System.err.println("Theme application failed: " + e.getMessage());
         }
     }
 
-    /**
-     * Switches the logo image to match the current theme.
-     * Dark theme → logo.png (white logo on dark background).
-     * Light/Colorblind→ logoblack.png (dark logo on light background).
-     */
     public static void applyLogo(ImageView logoView) {
         if (logoView == null) return;
         Theme currentTheme = getSavedTheme();

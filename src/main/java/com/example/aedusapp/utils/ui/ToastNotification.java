@@ -1,8 +1,6 @@
 package com.example.aedusapp.utils.ui;
 
 import javafx.animation.FadeTransition;
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -34,89 +32,75 @@ public class ToastNotification {
         Platform.runLater(() -> {
             Popup popup = new Popup();
             popup.setAutoFix(true);
-            popup.setHideOnEscape(false);
 
-            // Contenedor principal del toast
-            HBox container = new HBox(10);
-            container.setAlignment(Pos.CENTER_LEFT);
-            container.setPadding(new Insets(12, 20, 12, 16));
-            container.setMinWidth(280);
-            container.setMaxWidth(420);
+            // Main container
+            HBox root = new HBox(12);
+            root.setAlignment(Pos.CENTER_LEFT);
+            root.setPadding(new Insets(12, 22, 12, 22));
+            root.setMinWidth(300);
+            root.setMaxWidth(450);
 
-            // Estilo según el tipo
-            String emoji;
-            String bgColor;
-            String borderColor;
-            switch (type) {
-                case SUCCESS -> {
-                    emoji = "✅";
-                    bgColor = "#0d2d1a";
-                    borderColor = "#10b981";
-                }
-                case ERROR -> {
-                    emoji = "❌";
-                    bgColor = "#2d0d0d";
-                    borderColor = "#ef4444";
-                }
-                case WARNING -> {
-                    emoji = "⚠️";
-                    bgColor = "#2d1e0d";
-                    borderColor = "#f59e0b";
-                }
-                default -> {
-                    emoji = "ℹ️";
-                    bgColor = "#0d1a2d";
-                    borderColor = "#3b82f6";
-                }
-            }
+            // Style mapping
+            String color = switch (type) {
+                case SUCCESS -> "#10b981";
+                case ERROR -> "#ef4444";
+                case WARNING -> "#f59e0b";
+                default -> "#3b82f6";
+            };
 
-            container.setStyle(
-                    "-fx-background-color: " + bgColor + ";" +
-                            "-fx-background-radius: 10;" +
-                            "-fx-border-color: " + borderColor + ";" +
-                            "-fx-border-radius: 10;" +
-                            "-fx-border-width: 1.5;" +
-                            "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 15, 0, 0, 4);");
+            root.setStyle("-fx-background-color: #1e293b; " +
+                          "-fx-background-radius: 12; " +
+                          "-fx-border-color: " + color + "; " +
+                          "-fx-border-width: 0 0 0 4; " +
+                          "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 15, 0, 0, 8);");
 
-            // Icono
+            // Emoji/Icon
+            String emoji = switch (type) {
+                case SUCCESS -> "✅";
+                case ERROR -> "❌";
+                case WARNING -> "⚠️";
+                default -> "ℹ️";
+            };
             Label icon = new Label(emoji);
-            icon.setStyle("-fx-font-size: 18px;");
+            icon.setStyle("-fx-font-size: 16px;");
 
-            // Texto
-            Label text = new Label(message);
-            text.setStyle(
-                    "-fx-text-fill: #e2e8f0;" +
-                            "-fx-font-size: 13px;" +
-                            "-fx-font-family: 'Segoe UI';" +
-                            "-fx-wrap-text: true;");
-            text.setMaxWidth(340);
-            text.setWrapText(true);
+            // Message
+            Label lbl = new Label(message);
+            lbl.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-font-family: 'Segoe UI';");
+            lbl.setWrapText(true);
+            lbl.setMaxWidth(380);
 
-            container.getChildren().addAll(icon, text);
-            popup.getContent().add(container);
+            root.getChildren().addAll(icon, lbl);
+            popup.getContent().add(root);
 
-            // Posición: esquina inferior derecha
+            // Position: Top Center of the parent window
             popup.show(window);
-            double x = window.getX() + window.getWidth() - container.getMinWidth() - 30;
-            double y = window.getY() + window.getHeight() - 90;
+            double x = window.getX() + (window.getWidth() / 2) - (root.getWidth() / 2);
+            double y = window.getY() + 60;
             popup.setX(x);
             popup.setY(y);
 
-            // Animación de aparición
-            FadeTransition fadeIn = new FadeTransition(Duration.millis(200), container);
+            // Animations
+            root.setOpacity(0);
+            root.setTranslateY(-20);
+
+            FadeTransition fadeIn = new FadeTransition(Duration.millis(300), root);
             fadeIn.setFromValue(0);
             fadeIn.setToValue(1);
-            fadeIn.play();
 
-            // Auto-cierre tras 3.5 segundos con fade out
-            Timeline timer = new Timeline(new KeyFrame(Duration.millis(3500), e -> {
-                FadeTransition fadeOut = new FadeTransition(Duration.millis(400), container);
-                fadeOut.setFromValue(1);
-                fadeOut.setToValue(0);
-                fadeOut.setOnFinished(ev -> popup.hide());
-                fadeOut.play();
-            }));
-            timer.play();
+            javafx.animation.TranslateTransition slideIn = new javafx.animation.TranslateTransition(Duration.millis(300), root);
+            slideIn.setByY(20);
+
+            javafx.animation.ParallelTransition entry = new javafx.animation.ParallelTransition(fadeIn, slideIn);
+
+            javafx.animation.PauseTransition pause = new javafx.animation.PauseTransition(Duration.seconds(3));
+
+            FadeTransition fadeOut = new FadeTransition(Duration.millis(400), root);
+            fadeOut.setFromValue(1);
+            fadeOut.setToValue(0);
+            fadeOut.setOnFinished(ev -> popup.hide());
+
+            new javafx.animation.SequentialTransition(entry, pause, fadeOut).play();
         });
     }
 

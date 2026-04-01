@@ -66,8 +66,8 @@ public class LoginController {
 
             // Si el usuario existe (no es nulo)
             if (usuario != null) {
-                // Guardar usuario en la sesión global
-                com.example.aedusapp.utils.config.SessionManager.getInstance().setUsuarioActual(usuario);
+                // Guardar usuario en la sesión global y persistir
+                com.example.aedusapp.utils.config.SessionManager.getInstance().saveSession(usuario);
 
                 // Registrar evento de login en el sistema de logs
                 LogService.logLogin(usuario, "localhost");

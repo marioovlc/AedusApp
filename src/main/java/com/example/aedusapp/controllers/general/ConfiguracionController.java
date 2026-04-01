@@ -13,6 +13,7 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
+import javafx.scene.control.CheckBox;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.StackPane;
@@ -30,6 +31,7 @@ public class ConfiguracionController {
     @FXML private Label lblRoleDisplay;
     @FXML private Label lblMensaje;
     @FXML private ComboBox<ThemeManager.Theme> cmbTheme;
+    @FXML private CheckBox chkLargeText;
     @FXML private ImageView imgAvatarConf;
     @FXML private Label lblAvatarInitialsConf;
     @FXML private Label lblFotoNombreConf;
@@ -52,6 +54,19 @@ public class ConfiguracionController {
                 // Refresh theme-aware logo in sidebar
                 if (MainController.onThemeChanged != null) {
                     MainController.onThemeChanged.run();
+                }
+            });
+        }
+
+        if (chkLargeText != null) {
+            chkLargeText.setSelected(ThemeManager.isLargeTextEnabled());
+            chkLargeText.setOnAction(e -> {
+                ThemeManager.saveLargeText(chkLargeText.isSelected());
+                if (chkLargeText.getScene() != null) {
+                    ThemeManager.applyTheme(chkLargeText.getScene());
+                }
+                if (MainController.instance != null) {
+                    MainController.instance.refreshCurrentView("configuracion");
                 }
             });
         }
@@ -150,6 +165,15 @@ public class ConfiguracionController {
                 return;
             }
             passToSave = nuevaPass;
+        }
+
+        // Si no se eligió foto nueva, preservar la existente de la BD
+        if (nuevaFotoDatos == null) {
+            Usuario fromDB = usuarioDAO.getUserById(usuarioActual.getId());
+            if (fromDB != null) {
+                nuevaFotoDatos = fromDB.getFotoPerfilDatos();
+                if (nuevaFotoPath == null) nuevaFotoPath = fromDB.getFotoPerfil();
+            }
         }
 
         // Crear objeto actualizado
