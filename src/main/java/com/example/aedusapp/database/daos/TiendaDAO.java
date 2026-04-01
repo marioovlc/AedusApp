@@ -10,33 +10,37 @@ import java.util.List;
 
 public class TiendaDAO {
     private static final Logger logger = LoggerFactory.getLogger(TiendaDAO.class);
-    private static final String TABLE_NAME = "tienda_items";
+    private static final String TABLE_NAME = "gestion_incidencias.store_items";
 
     private static final DatabaseHelper.RowMapper<TiendaItem> ITEM_MAPPER = rs -> new TiendaItem(
             rs.getInt("id"),
-            rs.getString("nombre"),
-            rs.getInt("coste"),
-            rs.getString("descripcion")
+            rs.getString("name"),
+            rs.getInt("price"),
+            rs.getString("description"),
+            rs.getString("icon"),
+            rs.getString("color")
     );
 
     public void createTable() {
         String sql = "CREATE TABLE IF NOT EXISTS " + TABLE_NAME + " (" +
                      "id SERIAL PRIMARY KEY, " +
-                     "nombre VARCHAR(100) NOT NULL, " +
-                     "coste INT NOT NULL, " +
-                     "descripcion TEXT)";
+                     "name VARCHAR(100) NOT NULL, " +
+                     "price INT NOT NULL, " +
+                     "description TEXT, " +
+                     "icon VARCHAR(100) DEFAULT 'star', " +
+                     "color VARCHAR(20) DEFAULT '#F2C94C')";
         DatabaseHelper.executeUpdate(sql);
         logger.info("Tabla '{}' verificada/creada con éxito.", TABLE_NAME);
     }
 
     public List<TiendaItem> getAllItems() {
-        String sql = "SELECT id, nombre, coste, descripcion FROM " + TABLE_NAME + " ORDER BY coste ASC";
+        String sql = "SELECT id, name, price, description, icon, color FROM " + TABLE_NAME + " ORDER BY price ASC";
         return DatabaseHelper.queryForList(sql, ITEM_MAPPER);
     }
 
     public boolean saveItem(TiendaItem item) {
-        String sql = "INSERT INTO " + TABLE_NAME + " (nombre, coste, descripcion) VALUES (?, ?, ?)";
-        return DatabaseHelper.executeUpdate(sql, item.getNombre(), item.getCoste(), item.getDescripcion());
+        String sql = "INSERT INTO " + TABLE_NAME + " (name, price, description, icon, color) VALUES (?, ?, ?, ?, ?)";
+        return DatabaseHelper.executeUpdate(sql, item.getNombre(), item.getCoste(), item.getDescripcion(), item.getIcon(), item.getColor());
     }
 
     public boolean deleteItem(int id) {
