@@ -72,7 +72,7 @@ public class IncidenciasService {
         if (imagenSeleccionada != null) {
             String url = PostImagesService.uploadImage(imagenSeleccionada);
             if (url != null) {
-                nueva.setImagenRuta(url);
+                nueva.setImagenUrl(url);
             } else {
                 throw new RuntimeException("Error al subir imagen a la nube.");
             }

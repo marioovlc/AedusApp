@@ -579,12 +579,12 @@ public class ConnectHubController {
         lblDetalleEstado.setText(inc.getEstado());
         lblDetalleAula.setText(inc.getAulaNombre() != null ? inc.getAulaNombre() : "N/A");
 
-        if (inc.getImagenRuta() != null && !inc.getImagenRuta().isEmpty()) {
+        if (inc.getImagenUrl() != null && !inc.getImagenUrl().isEmpty()) {
             try {
-                if (inc.getImagenRuta().startsWith("http")) {
-                    imgDetalle.setImage(new Image(inc.getImagenRuta(), true));
+                if (inc.getImagenUrl().startsWith("http")) {
+                    imgDetalle.setImage(new Image(inc.getImagenUrl(), true));
                 } else {
-                    File img = new File(inc.getImagenRuta());
+                    File img = new File(inc.getImagenUrl());
                     if (img.exists()) imgDetalle.setImage(new Image(img.toURI().toString()));
                 }
                 vboxImagen.setVisible(true);

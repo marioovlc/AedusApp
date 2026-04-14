@@ -134,18 +134,8 @@ public class Incidencia {
         return imagenUrl;
     }
 
-    /** @deprecated Use getImagenUrl() */
-    public String getImagenRuta() {
-        return imagenUrl;
-    }
-
     public void setImagenUrl(String imagenUrl) {
         this.imagenUrl = imagenUrl;
-    }
-
-    /** @deprecated Use setImagenUrl() */
-    public void setImagenRuta(String imagenRuta) {
-        this.imagenUrl = imagenRuta;
     }
 
     public String getCategoriaNombre() {

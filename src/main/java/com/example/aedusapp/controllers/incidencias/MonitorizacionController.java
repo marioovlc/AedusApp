@@ -464,10 +464,10 @@ public class MonitorizacionController {
         String asignado = incidencia.getAsignadoNombre();
         lblAsignado.setText(asignado != null && !asignado.isEmpty() ? asignado : "Sin asignar");
 
-        boolean tieneImagen = incidencia.getImagenRuta() != null && !incidencia.getImagenRuta().isEmpty();
+        boolean tieneImagen = incidencia.getImagenUrl() != null && !incidencia.getImagenUrl().isEmpty();
         if (tieneImagen) {
             try {
-                String ruta = incidencia.getImagenRuta();
+                String ruta = incidencia.getImagenUrl();
                 if (ruta.startsWith("http")) {
                     imgDetalles.setImage(new Image(ruta, true));
                 } else {

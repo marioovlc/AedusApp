@@ -116,9 +116,9 @@ public class TarjetaIncidencia extends VBox {
         }
 
         // Imagen
-        if (incidencia.getImagenRuta() != null && !incidencia.getImagenRuta().isEmpty()) {
+        if (incidencia.getImagenUrl() != null && !incidencia.getImagenUrl().isEmpty()) {
             try {
-                String ruta = incidencia.getImagenRuta();
+                String ruta = incidencia.getImagenUrl();
                 Image img = null;
                 if (ruta.startsWith("http")) {
                     img = new Image(ruta, 110, 110, true, true, true);
@@ -135,7 +135,7 @@ public class TarjetaIncidencia extends VBox {
                     imgView.setFitWidth(110);
                     imgView.setFitHeight(110);
                     imgView.setPreserveRatio(true);
-                    imgView.setOnMouseClicked(e -> onImageClickCallback.accept(incidencia.getImagenRuta()));
+                    imgView.setOnMouseClicked(e -> onImageClickCallback.accept(incidencia.getImagenUrl()));
                     
                     Label imgLbl = new Label("📎 Adjunto");
                     imgLbl.setStyle("-fx-text-fill: #475569; -fx-font-size: 11px;");
