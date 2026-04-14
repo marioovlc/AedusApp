@@ -16,14 +16,14 @@ import org.springframework.security.crypto.bcrypt.BCrypt;
 public class UsuarioDAO {
 
     // --- SQL CONSTANTS ---
-    private static final String GET_USERS_ACTIVE = "SELECT * FROM neon_auth.user WHERE (banned IS NULL OR banned = false) ORDER BY name";
-    private static final String GET_USERS_INACTIVE = "SELECT * FROM neon_auth.user WHERE (banned IS TRUE) ORDER BY name";
+    private static final String GET_USERS_ACTIVE = "SELECT * FROM neon_auth.user WHERE (banned IS NULL OR banned = false) AND (\"emailVerified\" IS NULL OR \"emailVerified\" = true) ORDER BY name";
+    private static final String GET_USERS_INACTIVE = "SELECT * FROM neon_auth.user WHERE (banned IS TRUE) OR (\"emailVerified\" = false) ORDER BY name";
     private static final String GET_ALL_USERS = "SELECT * FROM neon_auth.user";
     private static final String GET_USER_BY_ID = "SELECT * FROM neon_auth.user WHERE id = ?::uuid";
     private static final String UPDATE_USER_COINS = "UPDATE neon_auth.user SET aeducoins = ? WHERE id = ?::uuid";
     
     private static final String UPDATE_USER = 
-        "UPDATE neon_auth.user SET name=?, email=?, banned=?, password=?, role=?, aeducoins=?, foto_perfil=?, foto_perfil_datos=?, telefono=?, bio=? WHERE id=?";
+        "UPDATE neon_auth.user SET name=?, email=?, banned=?, password=?, role=?, aeducoins=?, foto_perfil=?, foto_perfil_datos=?, telefono=?, bio=?, avatar_url=COALESCE(?, avatar_url) WHERE id=?";
         
     private static final String DELETE_USER = "DELETE FROM neon_auth.user WHERE id=?";
     private static final String VALIDATE_USER = "SELECT * FROM neon_auth.user WHERE email = ? AND (banned IS NULL OR banned = false)";
@@ -118,7 +118,8 @@ public class UsuarioDAO {
             stmt.setBytes(8, usuario.getFotoPerfilDatos());
             stmt.setString(9, usuario.getTelefono());
             stmt.setString(10, usuario.getBio());
-            stmt.setObject(11, java.util.UUID.fromString(usuario.getId())); 
+            stmt.setString(11, usuario.getAvatarUrl());
+            stmt.setObject(12, java.util.UUID.fromString(usuario.getId())); 
 
             return stmt.executeUpdate() > 0;
             
@@ -239,29 +240,45 @@ public class UsuarioDAO {
 
     private Usuario mapResultSetToUsuario(ResultSet rs, boolean fetchProfileData) throws SQLException {
         boolean banned = rs.getBoolean("banned");
+        boolean emailVerified = true;
         String fotoPerfil = null;
         byte[] fotoPerfilDatos = null;
         String telefono = null;
         String bio = null;
+        String avatarUrl = null;
         
         try { 
             fotoPerfil = rs.getString("foto_perfil"); 
             telefono = rs.getString("telefono");
             bio = rs.getString("bio");
             fotoPerfilDatos = rs.getBytes("foto_perfil_datos");
+            avatarUrl = rs.getString("avatar_url");
+            emailVerified = rs.getBoolean("emailVerified");
         } catch (Exception ex) {} 
 
-        return new Usuario(
+        // Determine status: PENDING if not emailVerified, INACTIVE if banned, ACTIVE otherwise
+        String status;
+        if (!emailVerified) {
+            status = "PENDING";
+        } else if (banned) {
+            status = "INACTIVE";
+        } else {
+            status = "ACTIVE";
+        }
+
+        Usuario user = new Usuario(
                 rs.getString("id"),
                 rs.getString("name"),
                 rs.getString("email"),
                 rs.getString("password"),
-                banned ? "INACTIVE" : "ACTIVE",
+                status,
                 rs.getString("role"),
                 rs.getInt("aeducoins"),
                 fotoPerfil,
                 fotoPerfilDatos,
                 telefono,
                 bio);
+        user.setAvatarUrl(avatarUrl != null ? avatarUrl : fotoPerfil);
+        return user;
     }
 }

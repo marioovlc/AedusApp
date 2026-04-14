@@ -13,6 +13,7 @@ public class Usuario {
     private byte[] fotoPerfilDatos;
     private String telefono;
     private String bio;
+    private String avatarUrl; // Unified with Web (avatar_url column)
 
     // Constructor actualizado
     public Usuario(String id, String nombre, String email, String password, String status, String role, int aeducoins, String fotoPerfil, byte[] fotoPerfilDatos, String telefono, String bio) {
@@ -103,4 +104,6 @@ public class Usuario {
     public void setTelefono(String telefono) { this.telefono = telefono; }
     public String getBio() { return bio; }
     public void setBio(String bio) { this.bio = bio; }
+    public String getAvatarUrl() { return avatarUrl; }
+    public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
 }

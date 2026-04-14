@@ -10,7 +10,7 @@ public class Incidencia {
     private int aulaId;
     private int categoriaId;
     private java.sql.Timestamp fechaCreacion;
-    private String imagenRuta; // Ruta de la imagen adjunta
+    private String imagenUrl; // URL/ruta de la imagen adjunta (unificado con Web)
     private String categoriaNombre; // Nombre de la categoría (para mostrar)
     private String aulaNombre; // Nombre del aula (para mostrar)
     private String aulaTipo; // Tipo de aula (Informática, Matemáticas, etc.)
@@ -130,12 +130,22 @@ public class Incidencia {
         this.asignadoNombre = asignadoNombre;
     }
 
-    public String getImagenRuta() {
-        return imagenRuta;
+    public String getImagenUrl() {
+        return imagenUrl;
     }
 
+    /** @deprecated Use getImagenUrl() */
+    public String getImagenRuta() {
+        return imagenUrl;
+    }
+
+    public void setImagenUrl(String imagenUrl) {
+        this.imagenUrl = imagenUrl;
+    }
+
+    /** @deprecated Use setImagenUrl() */
     public void setImagenRuta(String imagenRuta) {
-        this.imagenRuta = imagenRuta;
+        this.imagenUrl = imagenRuta;
     }
 
     public String getCategoriaNombre() {

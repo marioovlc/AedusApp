@@ -15,25 +15,25 @@ public class IncidenciaDAO {
 
     // --- SQL CONSTANTS ---
     private static final String CREATE_TICKET = 
-        "INSERT INTO incidencias (titulo, descripcion, usuario_id, aula_id, categoria_id, aula_tipo, estado_id, fecha_creacion, imagen_ruta) " +
+        "INSERT INTO incidencias (titulo, descripcion, usuario_id, aula_id, categoria_id, aula_tipo, estado_id, fecha_creacion, imagen_url) " +
         "VALUES (?, ?, ?::uuid, ?, ?, ?, (SELECT id FROM estados WHERE nombre = 'NO LEIDO'), NOW(), ?)";
 
     private static final String GET_TICKET_BY_ID = 
-        "SELECT i.id, i.titulo, i.descripcion, i.fecha_creacion, i.imagen_ruta, i.aula_tipo, i.resolucion, i.usuario_id," +
+        "SELECT i.id, i.titulo, i.descripcion, i.fecha_creacion, i.imagen_url, i.aula_tipo, i.resolucion, i.usuario_id," +
         "e.nombre as estado_nombre, c.nombre as categoria_nombre, a.nombre as aula_nombre " +
         "FROM incidencias i " +
         "JOIN estados e ON i.estado_id = e.id JOIN categorias c ON i.categoria_id = c.id JOIN aulas a ON i.aula_id = a.id " +
         "WHERE i.id = ?";
 
     private static final String GET_TICKETS_PAGINATED = 
-        "SELECT i.id, i.titulo, i.descripcion, i.fecha_creacion, i.imagen_ruta, i.aula_tipo, i.resolucion, " +
+        "SELECT i.id, i.titulo, i.descripcion, i.fecha_creacion, i.imagen_url, i.aula_tipo, i.resolucion, " +
         "e.nombre as estado_nombre, c.nombre as categoria_nombre, a.nombre as aula_nombre " +
         "FROM incidencias i " +
         "JOIN estados e ON i.estado_id = e.id JOIN categorias c ON i.categoria_id = c.id JOIN aulas a ON i.aula_id = a.id " +
         "WHERE i.usuario_id = ?::uuid ORDER BY i.fecha_creacion DESC LIMIT ? OFFSET ?";
 
     private static final String GET_ALL_TICKETS = 
-        "SELECT i.id, i.titulo, i.descripcion, i.fecha_creacion, i.imagen_ruta, i.resolucion, i.usuario_id, " +
+        "SELECT i.id, i.titulo, i.descripcion, i.fecha_creacion, i.imagen_url, i.resolucion, i.usuario_id, " +
         "e.nombre as estado_nombre, u.name as usuario_nombre " +
         "FROM incidencias i " +
         "JOIN estados e ON i.estado_id = e.id LEFT JOIN neon_auth.user u ON CAST(i.usuario_id AS TEXT) = u.id::TEXT " +
@@ -59,7 +59,7 @@ public class IncidenciaDAO {
         "GROUP BY DATE(fecha_creacion) ORDER BY fecha";
 
     private static final String GET_TICKETS_BY_USER = 
-        "SELECT i.id, i.titulo, i.descripcion, i.fecha_creacion, i.imagen_ruta, i.aula_tipo, i.resolucion, i.usuario_id, " +
+        "SELECT i.id, i.titulo, i.descripcion, i.fecha_creacion, i.imagen_url, i.aula_tipo, i.resolucion, i.usuario_id, " +
         "e.nombre as estado_nombre, c.nombre as categoria_nombre, a.nombre as aula_nombre " +
         "FROM incidencias i " +
         "JOIN estados e ON i.estado_id = e.id JOIN categorias c ON i.categoria_id = c.id JOIN aulas a ON i.aula_id = a.id " +
@@ -81,7 +81,7 @@ public class IncidenciaDAO {
             stmt.setInt(4, incidencia.getAulaId());
             stmt.setInt(5, incidencia.getCategoriaId());
             stmt.setString(6, incidencia.getAulaTipo());
-            stmt.setString(7, incidencia.getImagenRuta());
+            stmt.setString(7, incidencia.getImagenUrl());
 
             boolean success = stmt.executeUpdate() > 0;
             if (success) {
@@ -143,7 +143,7 @@ public class IncidenciaDAO {
                 inc.setEstado(rs.getString("estado_nombre"));
                 inc.setResolucion(rs.getString("resolucion"));
                 inc.setFechaCreacion(rs.getTimestamp("fecha_creacion"));
-                inc.setImagenRuta(rs.getString("imagen_ruta"));
+                inc.setImagenUrl(rs.getString("imagen_url"));
                 inc.setCreadorNombre(rs.getString("usuario_nombre"));
                 inc.setUsuarioId(rs.getString("usuario_id"));
                 incidencias.add(inc);
@@ -301,7 +301,7 @@ public class IncidenciaDAO {
         inc.setDescripcion(rs.getString("descripcion"));
         inc.setEstado(rs.getString("estado_nombre"));
         inc.setFechaCreacion(rs.getTimestamp("fecha_creacion"));
-        inc.setImagenRuta(rs.getString("imagen_ruta"));
+        inc.setImagenUrl(rs.getString("imagen_url"));
         inc.setCategoriaNombre(rs.getString("categoria_nombre"));
         inc.setAulaNombre(rs.getString("aula_nombre"));
         inc.setAulaTipo(rs.getString("aula_tipo"));
