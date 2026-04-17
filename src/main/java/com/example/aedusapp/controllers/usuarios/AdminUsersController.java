@@ -11,8 +11,11 @@ import javafx.scene.layout.*;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import java.util.stream.Collectors;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.shape.Circle;
+import java.io.ByteArrayInputStream;
 
 /**
  * AdminUsersController – cards dinámicas estilo timeline para Usuarios y
@@ -157,18 +160,8 @@ public class AdminUsersController {
         row.setPadding(new Insets(12, 14, 12, 14));
         row.getStyleClass().addAll("user-list-row", "row-role-" + getRolClass(u.getRole()));
 
-        // Avatar circular
-        String inicial = (u.getNombre() != null && !u.getNombre().isEmpty())
-                ? String.valueOf(u.getNombre().charAt(0)).toUpperCase()
-                : "?";
-        Label avatar = new Label(inicial);
-        avatar.setMinSize(36, 36);
-        avatar.setMaxSize(36, 36);
-        avatar.setAlignment(Pos.CENTER);
-        avatar.setStyle(
-                "-fx-background-color: " + hexToRgba(rolColor, 0.2) + ";" +
-                        "-fx-text-fill: " + rolColor + ";" +
-                        "-fx-font-weight: bold; -fx-font-size: 14px; -fx-background-radius: 18;");
+        // Avatar circular con foto real o inicial de fallback
+        StackPane avatarStack = buildAvatar(u, rolColor);
 
         // Texto: nombre + email
         VBox textBlock = new VBox(2);
@@ -187,7 +180,7 @@ public class AdminUsersController {
                         "-fx-font-size: 10px; -fx-font-weight: bold;" +
                         "-fx-padding: 3 10; -fx-background-radius: 10;");
 
-        row.getChildren().addAll(avatar, textBlock, rolBadge);
+        row.getChildren().addAll(avatarStack, textBlock, rolBadge);
 
         // Selección visual
         row.setOnMouseClicked(e -> {
@@ -201,6 +194,59 @@ public class AdminUsersController {
         });
 
         return row;
+    }
+
+    /** Builds a 36×36 circular avatar: photo (bytes or URL) → initial fallback */
+    private StackPane buildAvatar(Usuario u, String rolColor) {
+        String inicial = (u.getNombre() != null && !u.getNombre().isEmpty())
+                ? String.valueOf(u.getNombre().charAt(0)).toUpperCase() : "?";
+
+        // Fallback: initial letter
+        Label lblInicial = new Label(inicial);
+        lblInicial.setAlignment(Pos.CENTER);
+        lblInicial.setMinSize(36, 36);
+        lblInicial.setMaxSize(36, 36);
+        lblInicial.setStyle(
+                "-fx-background-color: " + hexToRgba(rolColor, 0.2) + ";" +
+                        "-fx-text-fill: " + rolColor + ";" +
+                        "-fx-font-weight: bold; -fx-font-size: 14px; -fx-background-radius: 18;");
+
+        StackPane stack = new StackPane(lblInicial);
+        stack.setMinSize(36, 36);
+        stack.setMaxSize(36, 36);
+
+        // Try to load the real photo asynchronously
+        boolean hasBytes = u.getFotoPerfilDatos() != null;
+        boolean hasUrl   = u.getAvatarUrl() != null && !u.getAvatarUrl().isEmpty();
+        if (hasBytes || hasUrl) {
+            ImageView imgView = new ImageView();
+            imgView.setFitWidth(36);
+            imgView.setFitHeight(36);
+            imgView.setPreserveRatio(true);
+            Circle clip = new Circle(18, 18, 18);
+            imgView.setClip(clip);
+            stack.getChildren().add(imgView);
+
+            javafx.concurrent.Task<Image> loadTask = new javafx.concurrent.Task<>() {
+                @Override protected Image call() {
+                    try {
+                        if (hasBytes)
+                            return new Image(new ByteArrayInputStream(u.getFotoPerfilDatos()));
+                        return new Image(u.getAvatarUrl(), 36, 36, true, true);
+                    } catch (Exception ignored) { return null; }
+                }
+            };
+            loadTask.setOnSucceeded(e -> {
+                Image img = loadTask.getValue();
+                if (img != null && !img.isError()) {
+                    imgView.setImage(img);
+                    lblInicial.setVisible(false);
+                    lblInicial.setManaged(false);
+                }
+            });
+            new Thread(loadTask).start();
+        }
+        return stack;
     }
 
     // ── Cards de Solicitudes Pendientes ───────────────────────────────
@@ -220,18 +266,8 @@ public class AdminUsersController {
         row.setPadding(new Insets(12, 14, 12, 14));
         row.getStyleClass().addAll("user-list-row", "row-role-pending");
 
-        // Avatar
-        String inicial = (u.getNombre() != null && !u.getNombre().isEmpty())
-                ? String.valueOf(u.getNombre().charAt(0)).toUpperCase()
-                : "?";
-        Label avatar = new Label(inicial);
-        avatar.setMinSize(36, 36);
-        avatar.setMaxSize(36, 36);
-        avatar.setAlignment(Pos.CENTER);
-        avatar.setStyle(
-                "-fx-background-color: rgba(251,191,36,0.18);" +
-                        "-fx-text-fill: #fbbf24;" +
-                        "-fx-font-weight: bold; -fx-font-size: 14px; -fx-background-radius: 18;");
+        // Avatar con foto real o inicial de fallback
+        StackPane avatarStack = buildAvatar(u, "#fbbf24");
 
         // Texto nombre + email
         VBox textBlock = new VBox(2);
@@ -250,7 +286,7 @@ public class AdminUsersController {
                         "-fx-font-size: 10px; -fx-font-weight: bold;" +
                         "-fx-padding: 3 10; -fx-background-radius: 10;");
 
-        row.getChildren().addAll(avatar, textBlock, badge);
+        row.getChildren().addAll(avatarStack, textBlock, badge);
 
         row.setOnMouseClicked(e -> {
             listaSolicitudes.getChildren().forEach(n -> {

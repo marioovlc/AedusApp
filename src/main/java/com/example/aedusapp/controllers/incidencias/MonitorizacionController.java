@@ -536,23 +536,55 @@ public class MonitorizacionController {
     private void handleAsignar() {
         if (incidenciaSeleccionada == null)
             return;
-        List<Usuario> activos = usuarioDAO.getUsersByStatus("ACTIVE");
-        List<String> nombres = activos.stream().map(Usuario::getNombre).collect(Collectors.toList());
-        if (nombres.isEmpty()) {
-            com.example.aedusapp.utils.ui.AlertUtils.showAlert(Alert.AlertType.WARNING, "Sin usuarios",
-                    "No hay usuarios activos para asignar.");
-            return;
-        }
-        ChoiceDialog<String> dialog = new ChoiceDialog<>(nombres.get(0), nombres);
-        dialog.setTitle("Asignar Incidencia");
-        dialog.setHeaderText("¿A quién quieres asignar esta incidencia?");
-        dialog.setContentText("Técnico:");
-        Optional<String> result = dialog.showAndWait();
-        result.ifPresent(nombre -> {
-            incidenciaSeleccionada.setAsignadoNombre(nombre);
-            lblAsignado.setText(nombre);
-            aplicarFiltros();
+            
+        // Bloquear UI temporalmente indicando carga asíncrona
+        lblAsignado.setText("Cargando técnicos...");
+        
+        javafx.concurrent.Task<List<Usuario>> loadTask = new javafx.concurrent.Task<>() {
+            @Override
+            protected List<Usuario> call() throws Exception {
+                return usuarioDAO.getUsersByStatus("ACTIVE");
+            }
+        };
+        
+        loadTask.setOnSucceeded(e -> {
+            List<Usuario> activos = loadTask.getValue();
+            List<String> nombres = activos.stream().map(Usuario::getNombre).collect(Collectors.toList());
+            
+            if (nombres.isEmpty()) {
+                lblAsignado.setText("Sin asignar");
+                com.example.aedusapp.utils.ui.AlertUtils.showAlert(Alert.AlertType.WARNING, "Sin usuarios",
+                        "No hay usuarios activos para asignar en la base de datos.");
+                return;
+            }
+            
+            ChoiceDialog<String> dialog = new ChoiceDialog<>(nombres.get(0), nombres);
+            dialog.setTitle("Asignar Incidencia");
+            dialog.setHeaderText("¿A quién quieres asignar esta incidencia?");
+            dialog.setContentText("Técnico:");
+            Optional<String> result = dialog.showAndWait();
+            
+            if (result.isPresent()) {
+                String nombre = result.get();
+                incidenciaSeleccionada.setAsignadoNombre(nombre);
+                lblAsignado.setText(nombre);
+                aplicarFiltros();
+            } else {
+                // Si el usuario cancela, restaurar label original (ej: buscando el previo o poniendo "Sin asignar")
+                String asignadoAntiguo = incidenciaSeleccionada.getAsignadoNombre();
+                lblAsignado.setText(asignadoAntiguo != null && !asignadoAntiguo.isEmpty() ? asignadoAntiguo : "Sin asignar");
+            }
         });
+        
+        loadTask.setOnFailed(e -> {
+            lblAsignado.setText("Error. Intente de nuevo");
+            com.example.aedusapp.utils.ui.AlertUtils.showAlert(Alert.AlertType.ERROR, "Error de Red",
+                    "Fallo al conectar con la base de datos al cargar usuarios. La aplicación no se congelará.");
+            Throwable ex = loadTask.getException();
+            if (ex != null) ex.printStackTrace();
+        });
+        
+        com.example.aedusapp.utils.ConcurrencyManager.submit(loadTask); // Usar el manager para los hilos de la App
     }
 
 

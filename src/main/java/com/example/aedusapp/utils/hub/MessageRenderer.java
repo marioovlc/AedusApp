@@ -50,6 +50,11 @@ public class MessageRenderer {
                 Image img = new Image(new java.io.ByteArrayInputStream(m.getAvatarDatos()));
                 avatarView.setImage(img);
             } catch (Exception ignored) {}
+        } else if (m.getAvatarUrl() != null && !m.getAvatarUrl().isEmpty()) {
+            try {
+                Image img = new Image(m.getAvatarUrl(), 32, 32, true, true, true);
+                avatarView.setImage(img);
+            } catch (Exception ignored) {}
         }
 
         // Bubble

@@ -8,6 +8,7 @@ public class Mensaje {
     private String usuarioId;   // ID of the user who sent it
     private String nombre;      // Name of the user (for UI)
     private byte[] avatarDatos; // Avatar data (for UI)
+    private String avatarUrl;   // Avatar URL (for UI)
     private String texto;
     private String imagenUrl;
     private String audioUrl;
@@ -18,12 +19,13 @@ public class Mensaje {
     private boolean leido;
     private boolean isSoporte;
 
-    public Mensaje(int id, int incidenciaId, String usuarioId, String nombre, byte[] avatarDatos, String texto, String imagenUrl, Timestamp fecha, boolean leido, boolean isSoporte) {
+    public Mensaje(int id, int incidenciaId, String usuarioId, String nombre, byte[] avatarDatos, String avatarUrl, String texto, String imagenUrl, Timestamp fecha, boolean leido, boolean isSoporte) {
         this.id = id;
         this.incidenciaId = incidenciaId;
         this.usuarioId = usuarioId;
         this.nombre = nombre;
         this.avatarDatos = avatarDatos;
+        this.avatarUrl = avatarUrl;
         this.texto = texto;
         this.imagenUrl = imagenUrl;
         this.audioUrl = null;
@@ -45,6 +47,7 @@ public class Mensaje {
     public String getUsuarioId() { return usuarioId; }
     public String getNombre() { return nombre; }
     public byte[] getAvatarDatos() { return avatarDatos; }
+    public String getAvatarUrl() { return avatarUrl; }
     public String getTexto() { return texto; }
     public String getImagenUrl() { return imagenUrl; }
     public String getAudioUrl() { return audioUrl; }

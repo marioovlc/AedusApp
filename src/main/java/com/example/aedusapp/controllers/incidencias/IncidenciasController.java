@@ -420,8 +420,9 @@ public class IncidenciasController {
 
         if (selectedFile != null) {
             imagenSeleccionada = selectedFile;
-            imagenLabel.setText(selectedFile.getName());
-            imagenLabel.setStyle("-fx-text-fill: #10b981;"); // Verde para indicar selección exitosa
+            double mbSize = selectedFile.length() / (1024.0 * 1024.0);
+            imagenLabel.setText(String.format("Imagen Adjunta (%.2f MB) - %s", mbSize, selectedFile.getName()));
+            imagenLabel.setStyle("-fx-text-fill: #10b981; -fx-font-weight: bold;"); // Verde para indicar selección exitosa
         }
     }
 
@@ -433,8 +434,12 @@ public class IncidenciasController {
         com.example.aedusapp.models.Aula aulaSeleccionada = aulaCombo.getValue();
 
         if (titulo.isEmpty() || desc.isEmpty() || catNombre == null || aulaSeleccionada == null) {
-            statusLabel.setText("Por favor rellena todos los campos.");
-            statusLabel.setStyle("-fx-text-fill: red;");
+            statusLabel.setText(""); // Limpiar para que sobresalga la alerta visual
+            com.example.aedusapp.utils.ui.AlertUtils.showAlert(
+                javafx.scene.control.Alert.AlertType.WARNING, 
+                "Campos Incompletos", 
+                "Debes indicar un título descriptivo y detalles para la incidencia antes de enviar."
+            );
             return;
         }
 

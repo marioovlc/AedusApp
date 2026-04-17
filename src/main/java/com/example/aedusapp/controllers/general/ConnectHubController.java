@@ -249,10 +249,57 @@ public class ConnectHubController {
                     cell.setAlignment(Pos.CENTER_LEFT);
                     cell.setPadding(new Insets(8));
 
+                    // Avatar circular – fallback inicial, foto encima si carga OK
+                    StackPane avatarStack = new StackPane();
+                    avatarStack.setMinSize(36, 36);
+                    avatarStack.setMaxSize(36, 36);
+
+                    Label initials = new Label(item.getNombre() != null && !item.getNombre().isEmpty()
+                            ? String.valueOf(item.getNombre().charAt(0)).toUpperCase() : "?");
+                    initials.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 14px;");
+                    StackPane fallbackCircle = new StackPane(initials);
+                    fallbackCircle.setMinSize(36, 36);
+                    fallbackCircle.setMaxSize(36, 36);
+                    fallbackCircle.setStyle("-fx-background-color: #3b82f6; -fx-background-radius: 18;");
+                    avatarStack.getChildren().add(fallbackCircle);
+
+                    boolean hasBytes = item.getFotoPerfilDatos() != null;
+                    boolean hasUrl   = item.getAvatarUrl() != null && !item.getAvatarUrl().isEmpty();
+                    if (hasBytes || hasUrl) {
+                        ImageView avatarImg = new ImageView();
+                        avatarImg.setFitWidth(36);
+                        avatarImg.setFitHeight(36);
+                        avatarImg.setPreserveRatio(true);
+                        avatarImg.setClip(new javafx.scene.shape.Circle(18, 18, 18));
+                        avatarStack.getChildren().add(avatarImg);
+
+                        javafx.concurrent.Task<Image> loadAvatar = new javafx.concurrent.Task<>() {
+                            @Override protected Image call() {
+                                try {
+                                    if (hasBytes)
+                                        return new Image(new java.io.ByteArrayInputStream(item.getFotoPerfilDatos()));
+                                    return new Image(item.getAvatarUrl(), 36, 36, true, true);
+                                } catch (Exception ignored) { return null; }
+                            }
+                        };
+                        loadAvatar.setOnSucceeded(ev -> {
+                            Image img = loadAvatar.getValue();
+                            if (img != null && !img.isError()) {
+                                avatarImg.setImage(img);
+                                fallbackCircle.setVisible(false);
+                                fallbackCircle.setManaged(false);
+                            }
+                        });
+                        new Thread(loadAvatar).start();
+                    }
+
+                    // Presence dot
                     Region dot = new Region();
                     dot.getStyleClass().add("presence-dot");
                     if (presenceManager != null && presenceManager.getUsuariosActivos().contains(item.getId()))
                         dot.getStyleClass().add("online");
+                    StackPane.setAlignment(dot, Pos.BOTTOM_RIGHT);
+                    avatarStack.getChildren().add(dot);
 
                     VBox info = new VBox(2);
                     Label name = new Label(item.getNombre());
@@ -280,7 +327,7 @@ public class ConnectHubController {
                     }
 
                     info.getChildren().addAll(name, lastMsg);
-                    cell.getChildren().addAll(dot, info, spacer, badge);
+                    cell.getChildren().addAll(avatarStack, info, spacer, badge);
                     setGraphic(cell);
 
                 }
@@ -645,6 +692,12 @@ public class ConnectHubController {
 
         if (user.getFotoPerfilDatos() != null) {
             imgPerfilGrande.setImage(new Image(new java.io.ByteArrayInputStream(user.getFotoPerfilDatos())));
+        } else if (user.getAvatarUrl() != null && !user.getAvatarUrl().isEmpty()) {
+            try {
+                imgPerfilGrande.setImage(new Image(user.getAvatarUrl(), true));
+            } catch (Exception ignored) {
+                imgPerfilGrande.setImage(null);
+            }
         } else {
             imgPerfilGrande.setImage(null);
         }
@@ -933,13 +986,13 @@ public class ConnectHubController {
     }
 
     private void addLocalMessage(String text, String imageUrl, String audioUrl, boolean isSoporte, Integer ticketLinkId) {
-        Mensaje m = new Mensaje(0, incidenciaActual != null ? incidenciaActual.getId() : 0, usuarioActual.getId(), usuarioActual.getNombre(), null, text, imageUrl, new java.sql.Timestamp(System.currentTimeMillis()), false, isSoporte);
+        Mensaje m = new Mensaje(0, incidenciaActual != null ? incidenciaActual.getId() : 0, usuarioActual.getId(), usuarioActual.getNombre(), null, null, text, imageUrl, new java.sql.Timestamp(System.currentTimeMillis()), false, isSoporte);
         m.setAudioUrl(audioUrl); m.setTicketLinkId(ticketLinkId);
         addMessageToChat(m);
     }
 
     private void addSystemMessage(String text) {
-        Mensaje m = new Mensaje(0, 0, "system", "Aedus AI", null, text, null, new java.sql.Timestamp(System.currentTimeMillis()), false, false);
+        Mensaje m = new Mensaje(0, 0, "system", "Aedus AI", null, null, text, null, new java.sql.Timestamp(System.currentTimeMillis()), false, false);
         addMessageToChat(m);
     }
 

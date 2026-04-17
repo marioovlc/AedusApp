@@ -51,12 +51,12 @@ public class MensajeDAO implements IMensajeDAO {
         "UPDATE mensajes SET leido = true WHERE CAST(usuario_id AS TEXT) = ? AND CAST(receptor_id AS TEXT) = ? AND leido = false AND incidencia_id IS NULL";
     
     private static final String GET_MESSAGES_BASE = 
-        "SELECT m.*, u.name as nombre, u.foto_perfil_datos FROM mensajes m " +
+        "SELECT m.*, u.name as nombre, u.foto_perfil_datos, u.avatar_url FROM mensajes m " +
         "LEFT JOIN neon_auth.user u ON CAST(m.usuario_id AS TEXT) = CAST(u.id AS TEXT) " +
         "WHERE m.incidencia_id = ? ORDER BY m.fecha ASC ";
         
     private static final String GET_DIRECT_MESSAGES_BASE = 
-        "SELECT m.*, u.name as nombre, u.foto_perfil_datos FROM mensajes m " +
+        "SELECT m.*, u.name as nombre, u.foto_perfil_datos, u.avatar_url FROM mensajes m " +
         "JOIN neon_auth.user u ON CAST(m.usuario_id AS TEXT) = CAST(u.id AS TEXT) " +
         "WHERE ((CAST(m.usuario_id AS TEXT) = ? AND CAST(m.receptor_id AS TEXT) = ?) OR " +
         "      (CAST(m.usuario_id AS TEXT) = ? AND CAST(m.receptor_id AS TEXT) = ?)) " +
@@ -135,6 +135,7 @@ public class MensajeDAO implements IMensajeDAO {
                 rs.getString("usuario_id"),
                 nombre,
                 rs.getBytes("foto_perfil_datos"),
+                rs.getString("avatar_url"),
                 rs.getString("texto"),
                 rs.getString("imagen_url"),
                 rs.getTimestamp("fecha"),
