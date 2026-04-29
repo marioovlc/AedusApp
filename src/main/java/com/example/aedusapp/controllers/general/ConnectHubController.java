@@ -347,9 +347,19 @@ public class ConnectHubController {
         chatContainer.heightProperty().addListener((obs, oldVal, newVal) -> scrollChat.setVvalue(1.0));
 
         lblRecordingStatus.setVisible(false);
-        // Initialization for right pane stack
-        paneDetalleTicket.setVisible(true);
-        paneDetalleUsuario.setVisible(false);
+        // Initialization for right pane stack matches AedusWeb (only Users & AI)
+        paneDetalleTicket.setVisible(false);
+        paneDetalleUsuario.setVisible(true);
+
+        btnTabTickets.setVisible(false);
+        btnTabTickets.setManaged(false);
+        btnTabPersonas.setVisible(false);
+        btnTabPersonas.setManaged(false);
+
+        boxListaTickets.setVisible(false);
+        boxListaTickets.setManaged(false);
+        boxListaPersonas.setVisible(true);
+        boxListaPersonas.setManaged(true);
 
         presenceManager = new com.example.aedusapp.utils.hub.PresenceManager(hubService, activos -> {
             listaUsuarios.refresh();
@@ -518,7 +528,7 @@ public class ConnectHubController {
     public void setUsuarioActual(Usuario user) {
         this.usuarioActual = user;
         iniciarPingPresencia();
-        cargarTickets();
+        cargarUsuarios(); // Carga usuarios por defecto ahora
     }
 
     private void cargarTickets() {
@@ -856,8 +866,9 @@ public class ConnectHubController {
         if (isAedusAIChat) {
             addLocalMessage(texto, null, null, false, null);
             lblChatStatus.setText("Escribiendo...");
+            String context = getAiContext();
             Task<String> aiTask = new Task<>() {
-                protected String call() { return aiService.askAI("Pregunta: " + texto); }
+                protected String call() { return aiService.askAI(texto, context); }
             };
             aiTask.setOnSucceeded(e -> {
                 lblChatStatus.setText("En línea");
@@ -998,6 +1009,34 @@ public class ConnectHubController {
 
     private void addMessageToChat(Mensaje m) {
         com.example.aedusapp.utils.hub.MessageRenderer.render(m, chatContainer, usuarioActual, incidenciaActual, hubService, audioService, this::seleccionarTicket);
+    }
+
+    private String getAiContext() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("ESTADO ACTUAL DEL SISTEMA:\n");
+        sb.append("Usuarios registrados: ").append(todosUsuariosCache.size()).append("\n");
+        sb.append("Incidencias totales: ").append(todasIncidenciasCache.size()).append("\n");
+        
+        long pendientes = todasIncidenciasCache.stream()
+            .filter(i -> "NO LEIDO".equalsIgnoreCase(i.getEstado()) || "PENDIENTE".equalsIgnoreCase(i.getEstado()))
+            .count();
+        sb.append("Incidencias pendientes: ").append(pendientes).append("\n\n");
+        
+        sb.append("LISTA DE USUARIOS (Resumen):\n");
+        int userLimit = Math.min(todosUsuariosCache.size(), 15);
+        for (int i = 0; i < userLimit; i++) {
+            Usuario u = todosUsuariosCache.get(i);
+            sb.append("- ").append(u.getNombre()).append(" (Rol: ").append(u.getRole()).append(")\n");
+        }
+        if (todosUsuariosCache.size() > 15) sb.append("- ... y otros más.\n");
+        
+        sb.append("\nÚLTIMAS INCIDENCIAS ACTIVAS:\n");
+        todasIncidenciasCache.stream()
+            .filter(i -> !"ACABADO".equalsIgnoreCase(i.getEstado()) && !"RESUELTA".equalsIgnoreCase(i.getEstado()))
+            .limit(10)
+            .forEach(i -> sb.append("- #").append(i.getId()).append(": ").append(i.getTitulo()).append(" [").append(i.getEstado()).append("]\n"));
+            
+        return sb.toString();
     }
 
 }

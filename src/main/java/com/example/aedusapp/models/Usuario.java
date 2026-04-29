@@ -75,12 +75,9 @@ public class Usuario {
 
     // Método de compatibilidad: devuelve 1 si es admin, 2 si es user
     public int getRoleId() {
-        if ("admin".equalsIgnoreCase(role)) {
-            return 1;
-        } else if ("mantenimiento".equalsIgnoreCase(role)) {
-            return 3;
-        }
-        return 2; // Por defecto "user" (Profesor)
+        if ("admin".equals(role)) return 1;
+        if ("mantenimiento".equals(role)) return 3;
+        return 2; // user
     }
 
     public boolean hasRole(int roleId) {

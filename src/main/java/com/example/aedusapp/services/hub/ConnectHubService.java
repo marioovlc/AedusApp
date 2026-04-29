@@ -117,7 +117,7 @@ public class ConnectHubService implements IConnectHubService {
      * Sends a ticket message.
      */
     public void sendTicketMessage(int ticketId, String from, String text, String imageUrl, String audioUrl, boolean isSupport) {
-        mensajeDAO.insertLocalMessage(ticketId, from, text, imageUrl, audioUrl, isSupport);
+        mensajeDAO.insertComentarioIncidencia(ticketId, from, text, isSupport);
     }
 
     /**

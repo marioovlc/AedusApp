@@ -33,10 +33,13 @@ public class IncidenciaDAO {
         "WHERE i.usuario_id = ?::uuid ORDER BY i.fecha_creacion DESC LIMIT ? OFFSET ?";
 
     private static final String GET_ALL_TICKETS = 
-        "SELECT i.id, i.titulo, i.descripcion, i.fecha_creacion, i.imagen_url, i.resolucion, i.usuario_id, " +
-        "e.nombre as estado_nombre, u.name as usuario_nombre " +
+        "SELECT i.id, i.titulo, i.descripcion, i.fecha_creacion, i.imagen_url, i.resolucion, i.usuario_id, i.aula_tipo, " +
+        "e.nombre as estado_nombre, u.name as usuario_nombre, c.nombre as categoria_nombre, a.nombre as aula_nombre " +
         "FROM incidencias i " +
-        "JOIN estados e ON i.estado_id = e.id LEFT JOIN neon_auth.user u ON CAST(i.usuario_id AS TEXT) = u.id::TEXT " +
+        "JOIN estados e ON i.estado_id = e.id " +
+        "LEFT JOIN neon_auth.user u ON CAST(i.usuario_id AS TEXT) = u.id::TEXT " +
+        "LEFT JOIN categorias c ON i.categoria_id = c.id " +
+        "LEFT JOIN aulas a ON i.aula_id = a.id " +
         "ORDER BY CASE WHEN e.nombre = 'NO LEIDO' THEN 0 ELSE 1 END, i.fecha_creacion DESC";
 
     private static final String UPDATE_STATUS = 
@@ -146,6 +149,9 @@ public class IncidenciaDAO {
                 inc.setImagenUrl(rs.getString("imagen_url"));
                 inc.setCreadorNombre(rs.getString("usuario_nombre"));
                 inc.setUsuarioId(rs.getString("usuario_id"));
+                inc.setCategoriaNombre(rs.getString("categoria_nombre"));
+                inc.setAulaNombre(rs.getString("aula_nombre"));
+                inc.setAulaTipo(rs.getString("aula_tipo"));
                 incidencias.add(inc);
             }
         } catch (SQLException e) {

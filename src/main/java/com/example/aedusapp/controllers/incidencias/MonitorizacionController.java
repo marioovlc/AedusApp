@@ -566,6 +566,17 @@ public class MonitorizacionController {
             
             if (result.isPresent()) {
                 String nombre = result.get();
+                Usuario asignadoUser = activos.stream().filter(u -> u.getNombre().equals(nombre)).findFirst().orElse(null);
+                
+                if (asignadoUser != null && usuarioActual != null) {
+                    // Send an internal comment logic
+                    hubService.sendTicketMessage(incidenciaSeleccionada.getId(), usuarioActual.getId(), "Ticket asignado a: " + nombre, null, null, true);
+                    // Send DM logic to the technician so they get notified
+                    new com.example.aedusapp.database.daos.MensajeDAO(new com.example.aedusapp.database.daos.AchievementDAO())
+                        .insertMessage(0, usuarioActual.getId(), "Has sido asignado a la incidencia: #" + incidenciaSeleccionada.getId() + " - " + incidenciaSeleccionada.getTitulo(), null, asignadoUser.getId(), incidenciaSeleccionada.getId());
+                    loadTicketMessages(incidenciaSeleccionada);
+                }
+
                 incidenciaSeleccionada.setAsignadoNombre(nombre);
                 lblAsignado.setText(nombre);
                 aplicarFiltros();
@@ -635,13 +646,29 @@ public class MonitorizacionController {
             if (mensajes.isEmpty()) return;
             
             boolean appended = false;
+            String foundAsignado = null;
             for (Mensaje m : mensajes) {
+                // Check assignments identically to AedusWeb
+                if (m.isSoporte() && m.getTexto() != null && m.getTexto().startsWith("Ticket asignado a: ")) {
+                    foundAsignado = m.getTexto().substring("Ticket asignado a: ".length()).trim();
+                }
+
                 if (m.getId() > lastMessageIdRendered) {
                     MessageRenderer.render(m, chatContainer, usuarioActual, incidenciaSeleccionada, hubService, audioService, null);
                     lastMessageIdRendered = m.getId();
                     appended = true;
                 }
             }
+            
+            if (foundAsignado != null && !foundAsignado.equals(incidenciaSeleccionada.getAsignadoNombre())) {
+                incidenciaSeleccionada.setAsignadoNombre(foundAsignado);
+                final String asigStr = foundAsignado;
+                Platform.runLater(() -> {
+                    if (lblAsignado != null) lblAsignado.setText(asigStr);
+                    aplicarFiltros();
+                });
+            }
+
             if (appended) {
                 Platform.runLater(() -> {
                     if (scrollChat != null) scrollChat.setVvalue(1.0);

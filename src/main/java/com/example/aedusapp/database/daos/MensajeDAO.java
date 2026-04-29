@@ -43,16 +43,16 @@ public class MensajeDAO implements IMensajeDAO {
     
     private static final String INSERT_LOCAL_MESSAGE = 
         "INSERT INTO mensajes (incidencia_id, usuario_id, texto, imagen_url, audio_url, is_soporte) VALUES (?, ?, ?, ?, ?, ?)";
-    
-    private static final String MARK_AS_READ = 
-        "UPDATE mensajes SET leido = true WHERE incidencia_id = ? AND CAST(usuario_id AS TEXT) != ?";
+    private static final String INSERT_COMENTARIO = 
+        "INSERT INTO gestion_incidencias.comentarios_incidencia (incidencia_id, usuario_id, texto, is_internal) VALUES (?, ?, ?, ?)";
     
     private static final String MARK_DIRECT_AS_READ = 
         "UPDATE mensajes SET leido = true WHERE CAST(usuario_id AS TEXT) = ? AND CAST(receptor_id AS TEXT) = ? AND leido = false AND incidencia_id IS NULL";
     
     private static final String GET_MESSAGES_BASE = 
-        "SELECT m.*, u.name as nombre, u.foto_perfil_datos, u.avatar_url FROM mensajes m " +
-        "LEFT JOIN neon_auth.user u ON CAST(m.usuario_id AS TEXT) = CAST(u.id AS TEXT) " +
+        "SELECT m.id, m.incidencia_id, m.usuario_id, m.texto, NULL as imagen_url, NULL as audio_url, m.fecha, true as leido, m.is_internal as is_soporte, NULL as receptor_id, NULL as ticket_link_id, u.name as nombre, u.foto_perfil_datos, u.avatar_url " +
+        "FROM gestion_incidencias.comentarios_incidencia m " +
+        "LEFT JOIN neon_auth.user u ON m.usuario_id::TEXT = u.id::TEXT " +
         "WHERE m.incidencia_id = ? ORDER BY m.fecha ASC ";
         
     private static final String GET_DIRECT_MESSAGES_BASE = 
@@ -62,9 +62,10 @@ public class MensajeDAO implements IMensajeDAO {
         "      (CAST(m.usuario_id AS TEXT) = ? AND CAST(m.receptor_id AS TEXT) = ?)) " +
         "AND m.incidencia_id IS NULL ORDER BY m.fecha ASC ";
 
-    private static final String GET_ALL_TICKET_DATES = "SELECT id as incidencia_id, ultima_actividad as ultima FROM incidencias";
-    private static final String GET_ALL_TICKET_UNREAD_COUNTS = "SELECT incidencia_id, COUNT(*) as cuenta FROM mensajes WHERE incidencia_id IS NOT NULL AND CAST(usuario_id AS TEXT) != ? AND leido = false GROUP BY incidencia_id";
-    private static final String GET_ALL_TICKET_LAST_MESSAGES = "SELECT DISTINCT ON (incidencia_id) incidencia_id, texto FROM mensajes WHERE incidencia_id IS NOT NULL ORDER BY incidencia_id, fecha DESC";
+    private static final String GET_ALL_TICKET_DATES = "SELECT incidencia_id, MAX(fecha) as ultima FROM gestion_incidencias.comentarios_incidencia GROUP BY incidencia_id";
+    // We leave unread counts for tickets returning 0 since logic says they are always read (we drop ticket unread marks for simplicity here exactly as Web does).
+    private static final String GET_ALL_TICKET_UNREAD_COUNTS = "SELECT incidencia_id, 0 as cuenta FROM gestion_incidencias.comentarios_incidencia WHERE 1=0 AND ? IS NOT NULL";
+    private static final String GET_ALL_TICKET_LAST_MESSAGES = "SELECT DISTINCT ON (incidencia_id) incidencia_id, texto FROM gestion_incidencias.comentarios_incidencia ORDER BY incidencia_id, fecha DESC";
     
     private static final String GET_ALL_CONTACT_DATES = 
         "SELECT CASE WHEN CAST(usuario_id AS TEXT) = ? THEN CAST(receptor_id AS TEXT) ELSE CAST(usuario_id AS TEXT) END as contacto_id, " +
@@ -107,8 +108,17 @@ public class MensajeDAO implements IMensajeDAO {
         );
     }
 
+    public void insertComentarioIncidencia(int ticketId, String from, String text, boolean isSupport) {
+        DatabaseHelper.executeUpdate(INSERT_COMENTARIO,
+            ticketId > 0 ? ticketId : null,
+            from,
+            text != null ? text : "",
+            isSupport
+        );
+    }
+
     public void markAsRead(int ticketId, String currentUserId) {
-        DatabaseHelper.executeUpdate(MARK_AS_READ, ticketId, currentUserId);
+        // En AedusWeb los comentarios_incidencia no tienen tabla de leídos.
     }
 
     public void markDirectAsRead(String receiverId, String senderId) {

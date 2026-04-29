@@ -94,6 +94,10 @@ public class TarjetaIncidencia extends VBox {
             String fecha = new SimpleDateFormat("dd MMM yyyy, HH:mm").format(incidencia.getFechaCreacion());
             chipsContainer.getChildren().add(crearChip("📅 " + fecha, "#475569"));
         }
+        // Chip de creador (visible en la vista admin)
+        if (incidencia.getCreadorNombre() != null && !incidencia.getCreadorNombre().isEmpty()) {
+            chipsContainer.getChildren().add(crearChip("👤 " + incidencia.getCreadorNombre(), "#818cf8"));
+        }
 
         // Resolución / Footer si está acabado
         EstadoIncidencia estadoActual = EstadoIncidencia.fromDbValue(incidencia.getEstado());
@@ -106,13 +110,16 @@ public class TarjetaIncidencia extends VBox {
             lblResCuerpo.setWrapText(true);
             lblResCuerpo.getStyleClass().add("resolucion-cuerpo");
             resolucionBox.getChildren().addAll(lblResTitulo, lblResCuerpo);
-            
-            Button btnBorrar = new Button("Borrar Ticket / Archivar");
-            btnBorrar.setMaxWidth(Double.MAX_VALUE);
-            btnBorrar.getStyleClass().addAll("action-button", "danger");
-            btnBorrar.setOnAction(e -> onEliminarCallback.accept(incidencia.getId()));
-            
-            footerContainer.getChildren().addAll(resolucionBox, btnBorrar);
+            footerContainer.getChildren().add(resolucionBox);
+
+            // Botón borrar solo disponible para el propio usuario (no en vista admin)
+            if (onEliminarCallback != null) {
+                Button btnBorrar = new Button("Borrar Ticket / Archivar");
+                btnBorrar.setMaxWidth(Double.MAX_VALUE);
+                btnBorrar.getStyleClass().addAll("action-button", "danger");
+                btnBorrar.setOnAction(e -> onEliminarCallback.accept(incidencia.getId()));
+                footerContainer.getChildren().add(btnBorrar);
+            }
         }
 
         // Imagen

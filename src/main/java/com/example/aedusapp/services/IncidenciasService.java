@@ -61,6 +61,11 @@ public class IncidenciasService {
         return incidenciaDAO.getTicketsByUserPaginated(usuarioId, pageSize, offset);
     }
 
+    /** Para el administrador: devuelve TODAS las incidencias del sistema (igual que la web) */
+    public List<Incidencia> obtenerTodasIncidencias() {
+        return incidenciaDAO.getAllTickets();
+    }
+
     public boolean borrarIncidencia(int id) {
         return incidenciaDAO.deleteTicket(id);
     }

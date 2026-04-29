@@ -246,15 +246,18 @@ public class UsuarioDAO {
         String telefono = null;
         String bio = null;
         String avatarUrl = null;
-        
-        try { 
-            fotoPerfil = rs.getString("foto_perfil"); 
+        String metadata = null;
+
+        try {
+            fotoPerfil = rs.getString("foto_perfil");
             telefono = rs.getString("telefono");
             bio = rs.getString("bio");
             fotoPerfilDatos = rs.getBytes("foto_perfil_datos");
             avatarUrl = rs.getString("avatar_url");
             emailVerified = rs.getBoolean("emailVerified");
-        } catch (Exception ex) {} 
+        } catch (Exception ex) {}
+
+        try { metadata = rs.getString("metadata"); } catch (Exception ignored) {}
 
         // Determine status: PENDING if not emailVerified, INACTIVE if banned, ACTIVE otherwise
         String status;
@@ -266,13 +269,37 @@ public class UsuarioDAO {
             status = "ACTIVE";
         }
 
+        // Read role from the dedicated column; fall back to metadata JSON if null/empty
+        String role = rs.getString("role");
+        if ((role == null || role.isBlank()) && metadata != null) {
+            // Neon Auth stores role in metadata JSON: {"role":"admin"}
+            java.util.regex.Matcher m = java.util.regex.Pattern
+                .compile("\"role\"\\s*:\\s*\"([^\"]+)\"")
+                .matcher(metadata);
+            if (m.find()) {
+                role = m.group(1);
+            }
+        }
+        
+        // Normalización: Si el rol es "Administrador" (español), lo tratamos como "admin"
+        if (role != null) {
+            String rLower = role.toLowerCase().trim();
+            if (rLower.equals("administrador")) {
+                role = "admin";
+            } else if (rLower.equals("mantenimiento")) {
+                role = "mantenimiento";
+            }
+        }
+        
+        if (role == null || role.isBlank()) role = "user";
+
         Usuario user = new Usuario(
                 rs.getString("id"),
                 rs.getString("name"),
                 rs.getString("email"),
                 rs.getString("password"),
                 status,
-                rs.getString("role"),
+                role,
                 rs.getInt("aeducoins"),
                 fotoPerfil,
                 fotoPerfilDatos,

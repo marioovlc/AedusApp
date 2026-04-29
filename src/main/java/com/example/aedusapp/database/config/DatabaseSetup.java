@@ -153,6 +153,17 @@ public class DatabaseSetup {
                 logger.warn("Aviso en migración de cascada (posiblemente ya aplicada): {}", e.getMessage());
             }
 
+            // 4. Role Unification (Unificar roles a estándar único: 'admin', 'mantenimiento', 'user')
+            try {
+                logger.info("Unifying user roles in database...");
+                stmt.executeUpdate("UPDATE neon_auth.user SET role = 'admin' WHERE role = 'Administrador' OR role = 'ADMIN'");
+                stmt.executeUpdate("UPDATE neon_auth.user SET role = 'mantenimiento' WHERE role = 'Mantenimiento'");
+                stmt.executeUpdate("UPDATE neon_auth.user SET role = 'user' WHERE role = 'Usuario' OR role = 'Profesor' OR role = '0'");
+                logger.info("Roles unified successfully.");
+            } catch (Exception e) {
+                logger.error("Error unificando roles: {}", e.getMessage());
+            }
+
             logger.info("Database schema initialized.");
             
             // Migration for Avatars

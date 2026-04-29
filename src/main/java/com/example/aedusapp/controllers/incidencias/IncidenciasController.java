@@ -252,6 +252,10 @@ public class IncidenciasController {
         cargarIncidencias();
     }
 
+    private boolean esAdmin() {
+        return usuarioActual != null && usuarioActual.hasRole("admin");
+    }
+
     private void cargarIncidencias() {
         if (usuarioActual == null)
             return;
@@ -259,13 +263,74 @@ public class IncidenciasController {
         incidenciasContainer.getChildren().clear();
         currentOffset = 0;
 
-        // Inicializar botón de cargar más
-        loadMoreButton = new Button("Cargar más...");
-        loadMoreButton.getStyleClass().add("load-more-btn");
-        loadMoreButton.setMaxWidth(Double.MAX_VALUE);
-        loadMoreButton.setOnAction(e -> cargarPaginaIncidencias());
+        if (esAdmin()) {
+            // Admin: carga TODAS las incidencias del sistema (igual que la web)
+            cargarTodasIncidenciasAdmin();
+        } else {
+            // Usuario normal: solo las suyas, con paginación
+            loadMoreButton = new Button("Cargar más...");
+            loadMoreButton.getStyleClass().add("load-more-btn");
+            loadMoreButton.setMaxWidth(Double.MAX_VALUE);
+            loadMoreButton.setOnAction(e -> cargarPaginaIncidencias());
+            cargarPaginaIncidencias();
+        }
+    }
 
-        cargarPaginaIncidencias();
+    /** Admin: carga TODAS las incidencias sin paginación */
+    private void cargarTodasIncidenciasAdmin() {
+        javafx.scene.control.ProgressIndicator spinner = new javafx.scene.control.ProgressIndicator();
+        spinner.setPrefSize(36, 36);
+        spinner.setStyle("-fx-accent: #3b82f6;");
+        javafx.scene.control.Label loadingLabel = new javafx.scene.control.Label("Cargando todas las incidencias...");
+        loadingLabel.setStyle("-fx-text-fill: #64748b; -fx-font-size: 13px;");
+        javafx.scene.layout.VBox loadingBox = new javafx.scene.layout.VBox(10, spinner, loadingLabel);
+        loadingBox.setAlignment(Pos.CENTER);
+        loadingBox.setPadding(new javafx.geometry.Insets(40));
+        incidenciasContainer.getChildren().add(loadingBox);
+
+        javafx.concurrent.Task<List<Incidencia>> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected List<Incidencia> call() throws Exception {
+                return incidenciasService.obtenerTodasIncidencias();
+            }
+        };
+
+        task.setOnSucceeded(e -> {
+            incidenciasContainer.getChildren().remove(loadingBox);
+            List<Incidencia> incidencias = task.getValue();
+
+            if (incidencias.isEmpty()) {
+                javafx.scene.layout.VBox emptyState = new javafx.scene.layout.VBox(10);
+                emptyState.getStyleClass().add("empty-state");
+                emptyState.setAlignment(Pos.CENTER);
+                emptyState.setMaxWidth(Double.MAX_VALUE);
+                Label icon = new Label("📋");
+                icon.getStyleClass().add("empty-state-icon");
+                Label title = new Label("Sin incidencias");
+                title.getStyleClass().add("empty-state-title");
+                Label subtitle = new Label("No hay ninguna incidencia registrada en el sistema.");
+                subtitle.getStyleClass().add("empty-state-subtitle");
+                subtitle.setMaxWidth(360);
+                emptyState.getChildren().addAll(icon, title, subtitle);
+                incidenciasContainer.getChildren().add(emptyState);
+            } else {
+                for (Incidencia inc : incidencias) {
+                    com.example.aedusapp.components.TarjetaIncidencia tarjeta =
+                        new com.example.aedusapp.components.TarjetaIncidencia(inc, null, IncidenciasController.this::mostrarImagenCompleta);
+                    incidenciasContainer.getChildren().add(tarjeta);
+                }
+            }
+        });
+
+        task.setOnFailed(e -> {
+            incidenciasContainer.getChildren().remove(loadingBox);
+            Label errLabel = new Label("⚠️ Error al cargar incidencias del sistema.");
+            errLabel.setStyle("-fx-text-fill: #ef4444; -fx-font-size: 14px;");
+            incidenciasContainer.getChildren().add(errLabel);
+            task.getException().printStackTrace();
+        });
+
+        com.example.aedusapp.utils.ConcurrencyManager.submit(task);
     }
 
     private void cargarPaginaIncidencias() {
