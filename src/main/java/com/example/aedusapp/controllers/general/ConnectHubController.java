@@ -351,10 +351,16 @@ public class ConnectHubController {
         paneDetalleTicket.setVisible(false);
         paneDetalleUsuario.setVisible(true);
 
-        btnTabTickets.setVisible(false);
-        btnTabTickets.setManaged(false);
-        btnTabPersonas.setVisible(false);
-        btnTabPersonas.setManaged(false);
+        // Visibility based on roles
+        Platform.runLater(() -> {
+            if (usuarioActual != null) {
+                boolean isPrivileged = "ADMIN".equalsIgnoreCase(usuarioActual.getRole()) || "MANTENIMIENTO".equalsIgnoreCase(usuarioActual.getRole());
+                btnTabTickets.setVisible(isPrivileged);
+                btnTabTickets.setManaged(isPrivileged);
+                btnTabPersonas.setVisible(true);
+                btnTabPersonas.setManaged(true);
+            }
+        });
 
         boxListaTickets.setVisible(false);
         boxListaTickets.setManaged(false);
@@ -528,7 +534,8 @@ public class ConnectHubController {
     public void setUsuarioActual(Usuario user) {
         this.usuarioActual = user;
         iniciarPingPresencia();
-        cargarUsuarios(); // Carga usuarios por defecto ahora
+        cargarUsuarios();
+        cargarTickets(); // Carga incidencias para el contexto de la IA y la pestaña de tickets
     }
 
     private void cargarTickets() {
@@ -1018,7 +1025,7 @@ public class ConnectHubController {
         sb.append("Incidencias totales: ").append(todasIncidenciasCache.size()).append("\n");
         
         long pendientes = todasIncidenciasCache.stream()
-            .filter(i -> "NO LEIDO".equalsIgnoreCase(i.getEstado()) || "PENDIENTE".equalsIgnoreCase(i.getEstado()))
+            .filter(i -> "NO LEIDO".equalsIgnoreCase(i.getEstado()) || "PENDIENTE".equalsIgnoreCase(i.getEstado()) || "ABIERTA".equalsIgnoreCase(i.getEstado()))
             .count();
         sb.append("Incidencias pendientes: ").append(pendientes).append("\n\n");
         
@@ -1032,8 +1039,8 @@ public class ConnectHubController {
         
         sb.append("\nÚLTIMAS INCIDENCIAS ACTIVAS:\n");
         todasIncidenciasCache.stream()
-            .filter(i -> !"ACABADO".equalsIgnoreCase(i.getEstado()) && !"RESUELTA".equalsIgnoreCase(i.getEstado()))
-            .limit(10)
+            .filter(i -> !"ACABADO".equalsIgnoreCase(i.getEstado()) && !"RESUELTA".equalsIgnoreCase(i.getEstado()) && !"CERRADA".equalsIgnoreCase(i.getEstado()))
+            .limit(15)
             .forEach(i -> sb.append("- #").append(i.getId()).append(": ").append(i.getTitulo()).append(" [").append(i.getEstado()).append("]\n"));
             
         return sb.toString();
