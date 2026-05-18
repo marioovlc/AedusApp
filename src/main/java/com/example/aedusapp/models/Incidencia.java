@@ -1,6 +1,14 @@
 package com.example.aedusapp.models;
 
-// Modelo que representa una Incidencia (problema reportado)
+// =============================================
+//  MODELO: Incidencia
+//  Representa un ticket de soporte / problema
+//  reportado por un usuario en el sistema Aedus.
+//  Incluye toda la información necesaria para:
+//    - Mostrar la tarjeta en la lista de incidencias
+//    - Gestionar el ciclo de vida del ticket (estados)
+//    - Enlazar con el aula, categoría y usuario creador
+// =============================================
 public class Incidencia {
     private int id;
     private String titulo;

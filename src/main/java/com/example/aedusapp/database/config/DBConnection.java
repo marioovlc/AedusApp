@@ -10,6 +10,11 @@ import java.sql.SQLException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// =============================================
+// ==== CLASE DBCONNECTION =====
+// Descripción: Gestiona el pool de conexiones
+// a la base de datos PostgreSQL utilizando HikariCP.
+// =============================================
 public class DBConnection {
 
     private static final Logger logger = LoggerFactory.getLogger(DBConnection.class);

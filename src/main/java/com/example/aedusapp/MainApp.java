@@ -20,10 +20,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 
-/**
- * Punto de entrada principal de la aplicación JavaFX.
- * Delega la inicialización del sistema a AppInitializer.
- */
+// =============================================
+//  CLASE: MainApp
+//  Punto de entrada principal de la aplicación JavaFX.
+//  Hereda de Application (JavaFX) y coordina:
+//    1. Inicialización del sistema (DI, Logging...)
+//    2. Carga del Splash Screen inicial
+//    3. Aplicación de estilos y tema visual
+//    4. Configuración de la ventana principal (Stage)
+//    5. Arranque del gestor de sostenibilidad
+// =============================================
 public class MainApp extends Application {
     private static final Logger logger = LoggerFactory.getLogger(MainApp.class);
 

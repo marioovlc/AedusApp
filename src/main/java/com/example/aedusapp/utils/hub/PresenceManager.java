@@ -13,9 +13,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 
-/**
- * Encapsula la lógica de presencia (pings) para no saturar el controlador principal.
- */
+// =============================================
+// ==== CLASE PRESENCEMANAGER =====
+// Descripción: Gestiona y encapsula la lógica de presencia
+// (pings de conexión activa) en segundo plano para la mensajería del ConnectHub.
+// =============================================
 public class PresenceManager {
     private final IConnectHubService hubService;
     private final Set<String> usuariosActivos = new HashSet<>();

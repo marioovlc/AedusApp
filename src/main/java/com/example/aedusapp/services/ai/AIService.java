@@ -13,6 +13,11 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 
+// =============================================
+// ==== CLASE AISERVICE =====
+// Descripción: Servicio de Inteligencia Artificial (IA) para realizar consultas
+// al modelo de lenguaje configurado (LLM) en el sistema.
+// =============================================
 public class AIService {
     private static final Logger logger = LoggerFactory.getLogger(AIService.class);
 

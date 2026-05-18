@@ -1,27 +1,36 @@
 package test;
 
 import com.example.aedusapp.database.config.DBConnection;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.Statement;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.URL;
+import java.net.HttpURLConnection;
 
 public class DbListTables {
     public static void main(String[] args) {
-        try (Connection conn = DBConnection.getConnection();
-             Statement stmt = conn.createStatement()) {
+        String testUrl = "https://res.cloudinary.com/dbdpkml2m/image/upload/v1775029269/oe15vz59gemmqt5v1mxe.png";
+        System.out.println("Testing connection to: " + testUrl);
+        try {
+            URI uri = new URI(testUrl);
+            URL url = uri.toURL();
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setConnectTimeout(5000);
+            conn.setReadTimeout(5000);
             
-            System.out.println("=== CURRENT SEARCH PATH ===");
-            try (ResultSet rs = stmt.executeQuery("SHOW search_path")) {
-                if (rs.next()) System.out.println(rs.getString(1));
-            }
-            
-            System.out.println("\n=== TABLES IN DB ===");
-            try (ResultSet rs = stmt.executeQuery("SELECT table_schema, table_name FROM information_schema.tables WHERE table_schema IN ('public', 'gestion_incidencias', 'neon_auth')")) {
-                while (rs.next()) {
-                    System.out.println(rs.getString("table_schema") + "." + rs.getString("table_name"));
+            int responseCode = conn.getResponseCode();
+            System.out.println("HTTP Response Code: " + responseCode);
+            if (responseCode == 200) {
+                try (InputStream in = conn.getInputStream()) {
+                    byte[] buffer = new byte[1024];
+                    int bytesRead = in.read(buffer);
+                    System.out.println("Successfully read " + bytesRead + " bytes from the image.");
                 }
+            } else {
+                System.out.println("Failed to load image. Response Message: " + conn.getResponseMessage());
             }
         } catch (Exception e) {
+            System.out.println("Exception occurred during connection test:");
             e.printStackTrace();
         }
     }

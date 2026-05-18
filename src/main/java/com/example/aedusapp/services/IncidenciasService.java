@@ -14,10 +14,11 @@ import com.example.aedusapp.services.media.PostImagesService;
 import java.io.File;
 import java.util.List;
 
-/**
- * Servicio centralizado para gestionar la lógica de negocio de las Incidencias.
- * Desacopla el Controlador de JavaFX de la capa de acceso a datos (DAOs) y APIs externas.
- */
+// =============================================
+// ==== CLASE INCIDENCIASSERVICE =====
+// Descripción: Servicio centralizado para gestionar la lógica de negocio de las Incidencias.
+// Desacopla el Controlador de JavaFX de la capa de acceso a datos (DAOs) y APIs externas.
+// =============================================
 public class IncidenciasService {
 
     private final IncidenciaDAO incidenciaDAO;

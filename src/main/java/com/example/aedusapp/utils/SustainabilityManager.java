@@ -19,6 +19,11 @@ import org.kordamp.ikonli.javafx.FontIcon;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// =============================================
+// ==== CLASE SUSTAINABILITYMANAGER =====
+// Descripción: Gestor de inactividad que activa un protector de pantalla /
+// modo de ahorro de energía sostenible tras 5 minutos de inactividad del usuario.
+// =============================================
 public class SustainabilityManager {
     private static final Logger logger = LoggerFactory.getLogger(SustainabilityManager.class);
     private static final Duration TIMEOUT = Duration.minutes(5);

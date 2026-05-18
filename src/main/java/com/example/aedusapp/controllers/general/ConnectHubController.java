@@ -25,6 +25,11 @@ import java.io.File;
 import java.sql.Timestamp;
 import java.util.*;
 
+// =============================================
+// ==== CLASE CONNECTHUBCONTROLLER =====
+// Descripción: Controlador de la interfaz Connect Hub para la comunicación
+// y chat en tiempo real dentro del ecosistema AedusApp.
+// =============================================
 public class ConnectHubController {
     private static final Logger logger = LoggerFactory.getLogger(ConnectHubController.class);
 
@@ -279,15 +284,26 @@ public class ConnectHubController {
                                     if (hasBytes)
                                         return new Image(new java.io.ByteArrayInputStream(item.getFotoPerfilDatos()));
                                     return new Image(item.getAvatarUrl(), 36, 36, true, true);
-                                } catch (Exception ignored) { return null; }
+                                } catch (Exception ex) {
+                                    System.err.println("Exception loading ConnectHub avatar for " + item.getNombre() + ": " + ex.getMessage());
+                                    ex.printStackTrace();
+                                    return null;
+                                }
                             }
                         };
                         loadAvatar.setOnSucceeded(ev -> {
                             Image img = loadAvatar.getValue();
-                            if (img != null && !img.isError()) {
-                                avatarImg.setImage(img);
-                                fallbackCircle.setVisible(false);
-                                fallbackCircle.setManaged(false);
+                            if (img != null) {
+                                if (!img.isError()) {
+                                    avatarImg.setImage(img);
+                                    fallbackCircle.setVisible(false);
+                                    fallbackCircle.setManaged(false);
+                                } else {
+                                    System.err.println("JavaFX ConnectHub avatar image error for " + item.getNombre() + ":");
+                                    if (img.getException() != null) {
+                                        img.getException().printStackTrace();
+                                    }
+                                }
                             }
                         });
                         new Thread(loadAvatar).start();

@@ -13,6 +13,11 @@ import java.util.ArrayList;
 import java.util.List;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 
+// =============================================
+// ==== CLASE USUARIODAO =====
+// Descripción: Clase de acceso a datos (DAO) para realizar operaciones
+// CRUD sobre la tabla de usuarios en la base de datos PostgreSQL/Neon.
+// =============================================
 public class UsuarioDAO {
 
     // --- SQL CONSTANTS ---
@@ -259,7 +264,7 @@ public class UsuarioDAO {
 
         try { metadata = rs.getString("metadata"); } catch (Exception ignored) {}
 
-        // Determine status: PENDING if not emailVerified, INACTIVE if banned, ACTIVE otherwise
+        // Determina el estado: PENDING si no está emailVerified, INACTIVE si está baneado, ACTIVE de lo contrario
         String status;
         if (!emailVerified) {
             status = "PENDING";
@@ -269,10 +274,10 @@ public class UsuarioDAO {
             status = "ACTIVE";
         }
 
-        // Read role from the dedicated column; fall back to metadata JSON if null/empty
+        // Lee el rol de la columna dedicada; recurre a la metadata JSON si está nulo/vacío
         String role = rs.getString("role");
         if ((role == null || role.isBlank()) && metadata != null) {
-            // Neon Auth stores role in metadata JSON: {"role":"admin"}
+            // Neon Auth almacena el rol en el JSON de metadatos: {"role":"admin"}
             java.util.regex.Matcher m = java.util.regex.Pattern
                 .compile("\"role\"\\s*:\\s*\"([^\"]+)\"")
                 .matcher(metadata);

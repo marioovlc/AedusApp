@@ -20,10 +20,11 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.function.Consumer;
 
-/**
- * Custom Component para renderizar una tarjeta de incidencia.
- * Al extender de VBox y usar <fx:root>, maneja su propio FXML.
- */
+// =============================================
+// ==== CLASE TARJETAINCIDENCIA =====
+// Descripción: Custom Component de JavaFX para renderizar gráficamente
+// una tarjeta de incidencia con su propio archivo FXML.
+// =============================================
 public class TarjetaIncidencia extends VBox {
 
     @FXML private VBox rootBox;
@@ -247,7 +248,7 @@ public class TarjetaIncidencia extends VBox {
         }
     }
 
-    // Helper functions from the original controller
+    // Funciones auxiliares del controlador original
     private String getCategoryColor(String categoria) {
         if (categoria == null) return "#3b82f6";
         return switch (categoria.toLowerCase()) {

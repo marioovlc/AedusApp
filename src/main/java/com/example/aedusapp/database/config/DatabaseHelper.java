@@ -11,10 +11,11 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Abstracción de JDBC que elimina la necesidad de gestionar manualmente las conexiones,
- * sentencias (PreparedStatements) y bloques try-catch (Boilerplate) en cada DAO.
- */
+// =============================================
+// ==== CLASE DATABASEHELPER =====
+// Descripción: Abstracción de JDBC que elimina la necesidad de
+// gestionar manualmente conexiones, sentencias preparadas y bloques try-catch.
+// =============================================
 public class DatabaseHelper {
     private static final Logger logger = LoggerFactory.getLogger(DatabaseHelper.class);
 

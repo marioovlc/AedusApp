@@ -14,6 +14,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+// =============================================
+// ==== CLASE MENSAJEDAO =====
+// Descripción: Clase de acceso a datos (DAO) para realizar operaciones
+// sobre la tabla de mensajes del sistema de comunicación/soporte (ConnectHub).
+// =============================================
 public class MensajeDAO implements IMensajeDAO {
     private static final Logger logger = LoggerFactory.getLogger(MensajeDAO.class);
 

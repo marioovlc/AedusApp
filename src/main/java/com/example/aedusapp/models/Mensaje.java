@@ -2,6 +2,17 @@ package com.example.aedusapp.models;
 
 import java.sql.Timestamp;
 
+// =============================================
+//  MODELO: Mensaje
+//  Representa un mensaje de chat dentro del
+//  sistema ConnectHub de AedusApp.
+//  Puede ser:
+//    - Mensaje de un ticket de incidencia
+//    - Mensaje directo entre dos usuarios
+//    - Mensaje de soporte (admin/mantenimiento)
+//  Incluye soporte para imágenes, audio y
+//  tarjetas de ticket compartidas (ticket_link_id).
+// =============================================
 public class Mensaje {
     private int id;
     private int incidenciaId;

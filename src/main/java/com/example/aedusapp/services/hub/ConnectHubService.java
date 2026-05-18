@@ -13,11 +13,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-/**
- * Service class for Connect Hub business logic.
- * Decouples data fetching and processing from the UI controller.
- * Adheres to professional English naming and Clean Code standards.
- */
+// =============================================
+// ==== CLASE CONNECTHUBSERVICE =====
+// Descripción: Servicio de negocio para el centro de comunicación
+// Connect Hub. Desacopla la lógica de mensajería y datos de la UI.
+// =============================================
 public class ConnectHubService implements IConnectHubService {
 
     private final IncidenciaDAO incidenciaDAO;
@@ -31,7 +31,7 @@ public class ConnectHubService implements IConnectHubService {
     }
 
     /**
-     * Fetches all relevant data for tickets based on user role.
+     * Obtiene todos los datos relevantes de los tickets según el rol del usuario.
      */
     public HubData<Incidencia> loadTicketData(Usuario usuarioActual) {
         List<Incidencia> tickets;
@@ -41,7 +41,7 @@ public class ConnectHubService implements IConnectHubService {
             tickets = incidenciaDAO.getTicketsByUser(usuarioActual.getId());
         }
 
-        // Parallel batch metadata fetching
+        // Obtención en paralelo de metadatos por lotes
         CompletableFuture<Map<Integer, Timestamp>> datesFuture = CompletableFuture.supplyAsync(mensajeDAO::getAllTicketDates);
         CompletableFuture<Map<Integer, Integer>> unreadFuture = CompletableFuture.supplyAsync(() -> mensajeDAO.getAllTicketUnreadCounts(usuarioActual.getId()));
         CompletableFuture<Map<Integer, String>> msgsFuture = CompletableFuture.supplyAsync(mensajeDAO::getAllTicketLastMessages);
@@ -52,7 +52,7 @@ public class ConnectHubService implements IConnectHubService {
     }
 
     /**
-     * Fetches all users and their chat metadata.
+     * Obtiene todos los usuarios y sus metadatos de chat.
      */
     public HubData<Usuario> loadUserData(Usuario usuarioActual) {
         List<Usuario> users = usuarioDAO.getAllUsers();
@@ -67,46 +67,46 @@ public class ConnectHubService implements IConnectHubService {
     }
 
     /**
-     * Marks all messages in a ticket as read.
+     * Marca todos los mensajes de un ticket como leídos.
      */
     public void markTicketAsRead(int ticketId, String currentUserId) {
         mensajeDAO.markAsRead(ticketId, currentUserId);
     }
 
     /**
-     * Marks all direct messages from a sender as read.
+     * Marca todos los mensajes directos de un remitente como leídos.
      */
     public void markDirectMessagesAsRead(String currentUserId, String senderId) {
         mensajeDAO.markDirectAsRead(currentUserId, senderId);
     }
 
     /**
-     * Gets chat history for a ticket.
+     * Obtiene el historial de chat para un ticket.
      */
     public List<Mensaje> getTicketMessages(int ticketId, int limit) {
         return mensajeDAO.getMessages(ticketId, limit);
     }
 
     /**
-     * Gets chat history for a direct conversation.
+     * Obtiene el historial de chat para una conversación directa.
      */
     public List<Mensaje> getDirectMessages(String user1, String user2, int limit) {
         return mensajeDAO.getDirectMessages(user1, user2, limit);
     }
 
     /**
-     * Sends a direct message with a ticket link.
+     * Envía un mensaje directo con un enlace a un ticket.
      */
     public void sendDirectMessageWithTicket(String from, String to, String text, Integer ticketLinkId) {
         mensajeDAO.insertMessage(0, from, text, null, to, ticketLinkId);
     }
 
     /**
-     * Sends a direct message with an optional attachment (audio/image).
+     * Envía un mensaje directo con un adjunto opcional (audio/imagen).
      */
     public void sendDirectMessageWithAttachment(String from, String to, String text, String attachmentUrl) {
         if (attachmentUrl != null && attachmentUrl.toLowerCase().endsWith(".wav")) {
-            // For voice messages, we use the local insert which handles audio_url
+            // Para mensajes de voz, usamos la inserción local que maneja audio_url
             mensajeDAO.insertLocalMessage(0, from, text, null, attachmentUrl, false); 
         } else {
              mensajeDAO.insertMessage(0, from, text, attachmentUrl, to, null);
@@ -114,49 +114,49 @@ public class ConnectHubService implements IConnectHubService {
     }
 
     /**
-     * Sends a ticket message.
+     * Envía un mensaje en un ticket.
      */
     public void sendTicketMessage(int ticketId, String from, String text, String imageUrl, String audioUrl, boolean isSupport) {
         mensajeDAO.insertComentarioIncidencia(ticketId, from, text, isSupport);
     }
 
     /**
-     * Updates user profile data.
+     * Actualiza los datos de perfil de un usuario.
      */
     public boolean actualizarUsuario(Usuario user) {
         return usuarioDAO.updateUser(user);
     }
 
     /**
-     * Gets a ticket by its ID.
+     * Obtiene un ticket por su ID.
      */
     public Incidencia getTicketById(int ticketId) {
         return incidenciaDAO.getTicketById(ticketId);
     }
 
     /**
-     * Updates the user's last connection timestamp.
+     * Actualiza la marca de tiempo de última conexión del usuario.
      */
     public void updateUserPresence(String userId) {
         usuarioDAO.updateLastSeen(userId);
     }
 
     /**
-     * Gets IDs of users active in the last N seconds.
+     * Obtiene los IDs de los usuarios activos en los últimos N segundos.
      */
     public List<String> getRecentlyActiveUsers(int seconds) {
         return usuarioDAO.getRecentlyActiveUsers(seconds);
     }
 
     /**
-     * Initializes presence table.
+     * Inicializa la tabla o sistema de presencia.
      */
     public void initPresenceSystem() {
         usuarioDAO.initPresenceSystem();
     }
 
     /**
-     * Internal DTO for batch results.
+     * DTO interno para resultados por lotes.
      */
     public static class HubData<T> {
         public final List<T> items;

@@ -14,6 +14,11 @@ import javafx.scene.layout.VBox;
 
 import java.util.prefs.Preferences;
 
+// =============================================
+// ==== CLASE TIENDAADMINCONTROLLER =====
+// Descripción: Controlador de la interfaz de administración de la tienda.
+// Permite gestionar el catálogo de productos disponibles y ajustar recompensas.
+// =============================================
 public class TiendaAdminController {
 
     @FXML private TextField txtAdminTiendaIcono;

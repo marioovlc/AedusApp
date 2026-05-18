@@ -6,10 +6,11 @@ import com.example.aedusapp.utils.ui.GlobalExceptionHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Centra la inicialización del sistema, registro de dependencias y configuraciones globales.
- * Evita el "hardcoding" excesivo en MainApp.
- */
+// =============================================
+// ==== CLASE APPINITIALIZER =====
+// Descripción: Centraliza la inicialización del sistema, el registro de dependencias
+// en el inyector y la configuración de controladores globales de excepciones.
+// =============================================
 public class AppInitializer {
     private static final Logger logger = LoggerFactory.getLogger(AppInitializer.class);
 

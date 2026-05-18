@@ -18,10 +18,11 @@ import javafx.scene.shape.Circle;
 import java.text.SimpleDateFormat;
 import java.util.function.Consumer;
 
-/**
- * Encapsula la lógica de renderizado de burbujas de chat.
- * Extraído de ConnectHubController para mejorar la mantenibilidad.
- */
+// =============================================
+// ==== CLASE MESSAGERENDERER =====
+// Descripción: Encapsula la lógica de renderizado gráfico de burbujas de chat
+// y tarjetas de ticket compartido dentro del ConnectHub.
+// =============================================
 public class MessageRenderer {
 
     public static void render(Mensaje m, 
@@ -49,12 +50,25 @@ public class MessageRenderer {
             try {
                 Image img = new Image(new java.io.ByteArrayInputStream(m.getAvatarDatos()));
                 avatarView.setImage(img);
-            } catch (Exception ignored) {}
+            } catch (Exception ex) {
+                System.err.println("Exception loading chat avatar from bytes for " + m.getNombre() + ": " + ex.getMessage());
+                ex.printStackTrace();
+            }
         } else if (m.getAvatarUrl() != null && !m.getAvatarUrl().isEmpty()) {
             try {
                 Image img = new Image(m.getAvatarUrl(), 32, 32, true, true, true);
-                avatarView.setImage(img);
-            } catch (Exception ignored) {}
+                if (img.isError()) {
+                    System.err.println("JavaFX Image loading error in chat avatar for " + m.getNombre() + ":");
+                    if (img.getException() != null) {
+                        img.getException().printStackTrace();
+                    }
+                } else {
+                    avatarView.setImage(img);
+                }
+            } catch (Exception ex) {
+                System.err.println("Exception loading chat avatar from URL for " + m.getNombre() + ": " + ex.getMessage());
+                ex.printStackTrace();
+            }
         }
 
         // Bubble

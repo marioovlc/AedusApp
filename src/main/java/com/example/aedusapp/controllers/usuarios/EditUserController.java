@@ -31,6 +31,7 @@ public class EditUserController {
     @FXML private StackPane avatarContainer;
     
     private String fotaPerfilPath = null;  // ruta local seleccionada
+    private byte[] nuevaFotoDatos = null;  // datos binarios de la nueva foto
 
     private Usuario usuario; // El usuario que se está editando
     private boolean saveClicked = false; // Bandera para saber si se pulsó "Guardar"
@@ -51,13 +52,23 @@ public class EditUserController {
         checkMantenimiento.setSelected("mantenimiento".equalsIgnoreCase(rol));
         
         fotaPerfilPath = usuario.getFotoPerfil();
+        nuevaFotoDatos = usuario.getFotoPerfilDatos();
         actualizarPreviewAvatar();
     }
     
     private void actualizarPreviewAvatar() {
         lblAvatarInitials.setVisible(false);
         imgAvatar.setImage(null);
-        if (fotaPerfilPath != null && !fotaPerfilPath.isEmpty()) {
+        if (nuevaFotoDatos != null && nuevaFotoDatos.length > 0) {
+            try {
+                Image img = new Image(new java.io.ByteArrayInputStream(nuevaFotoDatos), 70, 70, true, true);
+                imgAvatar.setImage(img);
+                imgAvatar.setClip(new Circle(35, 35, 35));
+                lblFotoRuta.setText(fotaPerfilPath != null ? new File(fotaPerfilPath).getName() : "Foto personalizada");
+            } catch (Exception e) {
+                mostrarIniciales();
+            }
+        } else if (fotaPerfilPath != null && !fotaPerfilPath.isEmpty()) {
             try {
                 String fotoUrl = fotaPerfilPath.startsWith("file:") ? fotaPerfilPath : "file:" + fotaPerfilPath;
                 Image img = new Image(fotoUrl, 70, 70, true, true);
@@ -91,6 +102,11 @@ public class EditUserController {
         File selectedFile = fileChooser.showOpenDialog(txtNombre.getScene().getWindow());
         if (selectedFile != null) {
             fotaPerfilPath = selectedFile.getAbsolutePath();
+            try {
+                nuevaFotoDatos = java.nio.file.Files.readAllBytes(selectedFile.toPath());
+            } catch (java.io.IOException e) {
+                e.printStackTrace();
+            }
             actualizarPreviewAvatar();
         }
     }
@@ -130,12 +146,19 @@ public class EditUserController {
                     usuario.getStatus(),
                     role,
                     usuario.getAeducoins(),
-                    fotaPerfilPath);
+                    fotaPerfilPath,
+                    nuevaFotoDatos,
+                    usuario.getTelefono(),
+                    usuario.getBio());
+
+            // Preserve avatarUrl and other unified properties
+            usuario.setAvatarUrl(usuario.getAvatarUrl());
 
             // Update session if editing the current user
             Usuario sesionUsuario = SessionManager.getInstance().getUsuarioActual();
             if (sesionUsuario != null && sesionUsuario.getId().equals(usuario.getId())) {
                 sesionUsuario.setFotoPerfil(fotaPerfilPath);
+                sesionUsuario.setFotoPerfilDatos(nuevaFotoDatos);
             }
 
             saveClicked = true; // Marcar como guardado

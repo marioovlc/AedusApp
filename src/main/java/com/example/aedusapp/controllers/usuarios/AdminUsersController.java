@@ -278,15 +278,26 @@ public class AdminUsersController {
                         if (hasBytes)
                             return new Image(new ByteArrayInputStream(u.getFotoPerfilDatos()));
                         return new Image(u.getAvatarUrl(), 36, 36, true, true);
-                    } catch (Exception ignored) { return null; }
+                    } catch (Exception ex) {
+                        System.err.println("Exception loading avatar for user " + u.getNombre() + ": " + ex.getMessage());
+                        ex.printStackTrace();
+                        return null;
+                    }
                 }
             };
             loadTask.setOnSucceeded(e -> {
                 Image img = loadTask.getValue();
-                if (img != null && !img.isError()) {
-                    imgView.setImage(img);
-                    lblInicial.setVisible(false);
-                    lblInicial.setManaged(false);
+                if (img != null) {
+                    if (!img.isError()) {
+                        imgView.setImage(img);
+                        lblInicial.setVisible(false);
+                        lblInicial.setManaged(false);
+                    } else {
+                        System.err.println("JavaFX Image loading error for user " + u.getNombre() + ":");
+                        if (img.getException() != null) {
+                            img.getException().printStackTrace();
+                        }
+                    }
                 }
             });
             new Thread(loadTask).start();

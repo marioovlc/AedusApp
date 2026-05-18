@@ -11,6 +11,11 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.TreeMap;
 
+// =============================================
+// ==== CLASE INCIDENCIADAO =====
+// Descripción: Clase de acceso a datos (DAO) para realizar operaciones
+// CRUD sobre la tabla de incidencias (tickets de soporte) en la base de datos.
+// =============================================
 public class IncidenciaDAO {
 
     // --- SQL CONSTANTS ---
