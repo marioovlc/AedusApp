@@ -22,57 +22,22 @@
         <Region prefHeight="10.0"/>
     </VBox>
 
-    <TabPane tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS" styleClass="tab-pane">
-        <tabs>
-            <!-- Tab 1: Usuarios Activos -->
-            <Tab text="👥 Usuarios Activos">
-                <content>
-                    <VBox spacing="12.0">
-                        <padding><Insets top="16.0" left="10.0" right="10.0" bottom="10.0"/></padding>
+    <VBox spacing="12.0" VBox.vgrow="ALWAYS" styleClass="content-panel">
+        <!-- Barra de filtros -->
+        <HBox spacing="8.0" alignment="CENTER_LEFT" styleClass="filter-bar">
+            <padding><Insets bottom="10.0" left="14.0" right="14.0" top="10.0"/></padding>
+            <Label text="Rol:" style="-fx-text-fill: #64748b; -fx-font-size: 11px; -fx-font-weight: bold;"/>
+            <Button fx:id="chipRolTodos"   text="Todos"           onAction="#onChipRolTodos"   styleClass="filter-chip,chip-active"/>
+            <Button fx:id="chipRolAdmin"   text="🔴 Admin"         onAction="#onChipRolAdmin"   styleClass="filter-chip"/>
+            <Button fx:id="chipRolMant"    text="🟡 Mantenimiento" onAction="#onChipRolMant"    styleClass="filter-chip"/>
+            <Button fx:id="chipRolUser"    text="🔵 Usuario"       onAction="#onChipRolUser"    styleClass="filter-chip"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <TextField fx:id="txtBuscarUsuario" promptText="🔍 Buscar..." prefWidth="160" onKeyReleased="#buscarUsuario"/>
+        </HBox>
 
-                        <!-- Barra de filtros -->
-                        <HBox spacing="8.0" alignment="CENTER_LEFT" styleClass="filter-bar">
-                            <padding><Insets bottom="10.0" left="14.0" right="14.0" top="10.0"/></padding>
-                            <Label text="Rol:" style="-fx-text-fill: #64748b; -fx-font-size: 11px; -fx-font-weight: bold;"/>
-                            <Button fx:id="chipRolTodos"   text="Todos"           onAction="#onChipRolTodos"   styleClass="filter-chip,chip-active"/>
-                            <Button fx:id="chipRolAdmin"   text="🔴 Admin"         onAction="#onChipRolAdmin"   styleClass="filter-chip"/>
-                            <Button fx:id="chipRolMant"    text="🟡 Mantenimiento" onAction="#onChipRolMant"    styleClass="filter-chip"/>
-                            <Button fx:id="chipRolUser"    text="🔵 Usuario"       onAction="#onChipRolUser"    styleClass="filter-chip"/>
-                            <Region HBox.hgrow="ALWAYS"/>
-                            <TextField fx:id="txtBuscarUsuario" promptText="🔍 Buscar..." prefWidth="160" onKeyReleased="#buscarUsuario"/>
-                            <Button text="✏ Editar"   onAction="#handleEditUser"   styleClass="action-button,primary"/>
-                            <Button text="🗑 Eliminar" onAction="#handleDeleteUser" styleClass="action-button,danger"/>
-                        </HBox>
-
-                        <!-- Lista dinámica de usuarios activos -->
-                        <ScrollPane VBox.vgrow="ALWAYS" fitToWidth="true" styleClass="scroll-pane" hbarPolicy="NEVER" prefHeight="500.0">
-                            <VBox fx:id="listaUsuarios" spacing="0"/>
-                        </ScrollPane>
-                    </VBox>
-                </content>
-            </Tab>
-
-            <!-- Tab 2: Solicitudes Pendientes -->
-            <Tab text="⏳ Solicitudes Pendientes">
-                <content>
-                    <VBox spacing="12.0">
-                        <padding><Insets top="16.0" left="10.0" right="10.0" bottom="10.0"/></padding>
-
-                        <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="filter-bar">
-                            <padding><Insets bottom="10.0" left="14.0" right="14.0" top="10.0"/></padding>
-                            <Label text="⏳ Usuarios esperando aprobación" style="-fx-text-fill: #64748b; -fx-font-size: 12px;"/>
-                            <Region HBox.hgrow="ALWAYS"/>
-                            <Button onAction="#handleDenyRequest"    text="✕ Rechazar" styleClass="action-button,danger"/>
-                            <Button onAction="#handleApproveRequest" text="✓ Aprobar"  styleClass="action-button,success"/>
-                        </HBox>
-
-                        <!-- Lista dinámica de solicitudes pendientes -->
-                        <ScrollPane VBox.vgrow="ALWAYS" fitToWidth="true" styleClass="scroll-pane" hbarPolicy="NEVER" prefHeight="500.0">
-                            <VBox fx:id="listaSolicitudes" spacing="0"/>
-                        </ScrollPane>
-                    </VBox>
-                </content>
-            </Tab>
-        </tabs>
-    </TabPane>
+        <!-- Lista dinámica de usuarios -->
+        <ScrollPane VBox.vgrow="ALWAYS" fitToWidth="true" styleClass="scroll-pane" hbarPolicy="NEVER" prefHeight="500.0">
+            <VBox fx:id="listaUsuarios" spacing="0"/>
+        </ScrollPane>
+    </VBox>
 </VBox>

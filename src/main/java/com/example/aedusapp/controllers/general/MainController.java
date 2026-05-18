@@ -373,6 +373,7 @@ public class MainController {
         cargarVista("/com/example/aedusapp/views/incidencias/monitorizacion.fxml", "monitorizacion", btnMonitorizacion);
         Object controller = controllerCache.get("monitorizacion");
         if (controller instanceof com.example.aedusapp.controllers.incidencias.MonitorizacionController mc) {
+            mc.switchTab("incidencias");
             mc.setInitialFilter(filter);
         }
     }

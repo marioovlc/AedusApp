@@ -84,6 +84,36 @@ public class MonitorizacionController {
     @FXML
     private TextField txtBuscarMonitor;
 
+    // Pestañas
+    @FXML
+    private Button btnTabIncidencias;
+    @FXML
+    private Button btnTabSistema;
+
+    // Contenedores de contenido de pestaña
+    @FXML
+    private HBox tabContentIncidencias;
+    @FXML
+    private ScrollPane tabContentSistema;
+
+    // Estado e Infraestructura
+    @FXML
+    private Label lblGroqSubtitle;
+    @FXML
+    private Label badgeGroqStatus;
+    @FXML
+    private Label lblNeonSubtitle;
+    @FXML
+    private Label badgeNeonStatus;
+    @FXML
+    private Label lblVercelSubtitle;
+    @FXML
+    private Label badgeVercelStatus;
+    @FXML
+    private Label lblLatencyValue;
+    @FXML
+    private Button btnRefreshSistema;
+
     // ── Estado ────────────────────────────────────────────────────────
     private final IncidenciaDAO incidenciaDAO = new IncidenciaDAO();
     private final UsuarioDAO usuarioDAO = new UsuarioDAO();
@@ -113,6 +143,16 @@ public class MonitorizacionController {
         // Real-time search with debounce-like behavior
         if (txtBuscarMonitor != null) {
             txtBuscarMonitor.textProperty().addListener((obs, oldVal, newVal) -> aplicarFiltros());
+        }
+
+        // Configuración inicial de pestañas
+        if (tabContentIncidencias != null) {
+            tabContentIncidencias.setVisible(true);
+            tabContentIncidencias.setManaged(true);
+        }
+        if (tabContentSistema != null) {
+            tabContentSistema.setVisible(false);
+            tabContentSistema.setManaged(false);
         }
     }
 
@@ -732,4 +772,177 @@ public class MonitorizacionController {
         }
     }
 
+    // ── Gestión de Pestañas Unificadas (LOGS, INCIDENCIAS, SISTEMA) ──
+
+    @FXML
+    private void onTabIncidenciasClicked() {
+        switchTab("incidencias");
+    }
+
+    @FXML
+    private void onTabSistemaClicked() {
+        switchTab("sistema");
+        refreshSistemaMetrics();
+    }
+
+    public void switchTab(String tab) {
+        if (btnTabIncidencias == null || btnTabSistema == null) return;
+
+        btnTabIncidencias.getStyleClass().remove("active");
+        btnTabSistema.getStyleClass().remove("active");
+
+        tabContentIncidencias.setVisible(false);
+        tabContentIncidencias.setManaged(false);
+        tabContentSistema.setVisible(false);
+        tabContentSistema.setManaged(false);
+
+        if ("incidencias".equals(tab)) {
+            btnTabIncidencias.getStyleClass().add("active");
+            tabContentIncidencias.setVisible(true);
+            tabContentIncidencias.setManaged(true);
+        } else if ("sistema".equals(tab)) {
+            btnTabSistema.getStyleClass().add("active");
+            tabContentSistema.setVisible(true);
+            tabContentSistema.setManaged(true);
+        }
+    }
+
+    @FXML
+    private void refreshSistemaMetrics() {
+        if (lblLatencyValue == null) return;
+
+        lblLatencyValue.setText("Calculando...");
+        badgeGroqStatus.setText("CARGANDO");
+        badgeGroqStatus.setStyle("-fx-background-color: rgba(251, 191, 36, 0.15); -fx-text-fill: #fbbf24; -fx-font-size: 11px; -fx-font-weight: bold; -fx-padding: 4 10; -fx-background-radius: 6;");
+        lblGroqSubtitle.setText("Verificando...");
+
+        badgeNeonStatus.setText("CARGANDO");
+        badgeNeonStatus.setStyle("-fx-background-color: rgba(251, 191, 36, 0.15); -fx-text-fill: #fbbf24; -fx-font-size: 11px; -fx-font-weight: bold; -fx-padding: 4 10; -fx-background-radius: 6;");
+        lblNeonSubtitle.setText("Verificando...");
+
+        badgeVercelStatus.setText("CARGANDO");
+        badgeVercelStatus.setStyle("-fx-background-color: rgba(251, 191, 36, 0.15); -fx-text-fill: #fbbf24; -fx-font-size: 11px; -fx-font-weight: bold; -fx-padding: 4 10; -fx-background-radius: 6;");
+        lblVercelSubtitle.setText("Verificando...");
+
+        javafx.concurrent.Task<Void> task = new javafx.concurrent.Task<>() {
+            private long latency = -1;
+            private boolean groqOnline = false;
+            private boolean vercelOnline = false;
+            private boolean neonOnline = false;
+
+            @Override
+            protected Void call() throws Exception {
+                // 1. Verificar base de datos (Neon) y latencia
+                long start = System.currentTimeMillis();
+                try (java.sql.Connection conn = com.example.aedusapp.database.config.DBConnection.getConnection();
+                     java.sql.Statement stmt = conn.createStatement()) {
+                    stmt.executeQuery("SELECT 1");
+                    latency = System.currentTimeMillis() - start;
+                    neonOnline = true;
+                } catch (Exception e) {
+                    neonOnline = false;
+                }
+
+                // 2. Verificar Groq AI Engine
+                String apiKey = com.example.aedusapp.utils.config.AppConfig.getAiApiKey();
+                if (apiKey != null && !apiKey.isBlank()) {
+                    try {
+                        java.net.http.HttpClient client = java.net.http.HttpClient.newBuilder()
+                                .connectTimeout(java.time.Duration.ofSeconds(3))
+                                .build();
+                        java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                                .uri(java.net.URI.create("https://api.groq.com/openai/v1/models"))
+                                .header("Authorization", "Bearer " + apiKey)
+                                .GET()
+                                .build();
+                        java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
+                        groqOnline = response.statusCode() == 200;
+                    } catch (Exception e) {
+                        groqOnline = false;
+                    }
+                } else {
+                    groqOnline = false;
+                }
+
+                // 3. Verificar red y conexión a Vercel Edge
+                try {
+                    java.net.http.HttpClient client = java.net.http.HttpClient.newBuilder()
+                            .connectTimeout(java.time.Duration.ofSeconds(3))
+                            .build();
+                    java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                            .uri(java.net.URI.create("https://vercel.com"))
+                            .method("HEAD", java.net.http.HttpRequest.BodyPublishers.noBody())
+                            .build();
+                    java.net.http.HttpResponse<Void> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.discarding());
+                    vercelOnline = response.statusCode() >= 200 && response.statusCode() < 400;
+                } catch (Exception e) {
+                    vercelOnline = false;
+                }
+
+                return null;
+            }
+
+            @Override
+            protected void succeeded() {
+                super.succeeded();
+                Platform.runLater(() -> {
+                    // Actualizar Neon DB UI
+                    if (neonOnline) {
+                        badgeNeonStatus.setText("ONLINE");
+                        badgeNeonStatus.setStyle("-fx-background-color: rgba(52, 211, 153, 0.15); -fx-text-fill: #34d399; -fx-font-size: 11px; -fx-font-weight: bold; -fx-padding: 4 10; -fx-background-radius: 6;");
+                        lblNeonSubtitle.setText("En línea");
+                        lblLatencyValue.setText(latency + " ms");
+                    } else {
+                        badgeNeonStatus.setText("OFFLINE");
+                        badgeNeonStatus.setStyle("-fx-background-color: rgba(239, 68, 68, 0.15); -fx-text-fill: #f87171; -fx-font-size: 11px; -fx-font-weight: bold; -fx-padding: 4 10; -fx-background-radius: 6;");
+                        lblNeonSubtitle.setText("Desconectado");
+                        lblLatencyValue.setText("Error");
+                    }
+
+                    // Actualizar Groq UI
+                    if (groqOnline) {
+                        badgeGroqStatus.setText("ONLINE");
+                        badgeGroqStatus.setStyle("-fx-background-color: rgba(52, 211, 153, 0.15); -fx-text-fill: #34d399; -fx-font-size: 11px; -fx-font-weight: bold; -fx-padding: 4 10; -fx-background-radius: 6;");
+                        lblGroqSubtitle.setText("Operativo");
+                    } else {
+                        badgeGroqStatus.setText("OFFLINE");
+                        badgeGroqStatus.setStyle("-fx-background-color: rgba(239, 68, 68, 0.15); -fx-text-fill: #f87171; -fx-font-size: 11px; -fx-font-weight: bold; -fx-padding: 4 10; -fx-background-radius: 6;");
+                        lblGroqSubtitle.setText("Sin respuesta");
+                    }
+
+                    // Actualizar Vercel UI
+                    if (vercelOnline) {
+                        badgeVercelStatus.setText("ONLINE");
+                        badgeVercelStatus.setStyle("-fx-background-color: rgba(52, 211, 153, 0.15); -fx-text-fill: #34d399; -fx-font-size: 11px; -fx-font-weight: bold; -fx-padding: 4 10; -fx-background-radius: 6;");
+                        lblVercelSubtitle.setText("Conectado");
+                    } else {
+                        badgeVercelStatus.setText("OFFLINE");
+                        badgeVercelStatus.setStyle("-fx-background-color: rgba(239, 68, 68, 0.15); -fx-text-fill: #f87171; -fx-font-size: 11px; -fx-font-weight: bold; -fx-padding: 4 10; -fx-background-radius: 6;");
+                        lblVercelSubtitle.setText("Desconectado");
+                    }
+                });
+            }
+
+            @Override
+            protected void failed() {
+                super.failed();
+                Platform.runLater(() -> {
+                    badgeNeonStatus.setText("ERROR");
+                    badgeNeonStatus.setStyle("-fx-background-color: rgba(239, 68, 68, 0.15); -fx-text-fill: #f87171; -fx-font-size: 11px; -fx-font-weight: bold; -fx-padding: 4 10; -fx-background-radius: 6;");
+                    lblNeonSubtitle.setText("Fallo al verificar");
+
+                    badgeGroqStatus.setText("ERROR");
+                    badgeGroqStatus.setStyle("-fx-background-color: rgba(239, 68, 68, 0.15); -fx-text-fill: #f87171; -fx-font-size: 11px; -fx-font-weight: bold; -fx-padding: 4 10; -fx-background-radius: 6;");
+                    lblGroqSubtitle.setText("Fallo al verificar");
+
+                    badgeVercelStatus.setText("ERROR");
+                    badgeVercelStatus.setStyle("-fx-background-color: rgba(239, 68, 68, 0.15); -fx-text-fill: #f87171; -fx-font-size: 11px; -fx-font-weight: bold; -fx-padding: 4 10; -fx-background-radius: 6;");
+                    lblVercelSubtitle.setText("Fallo al verificar");
+
+                    lblLatencyValue.setText("Error");
+                });
+            }
+        };
+        new Thread(task).start();
+    }
 }

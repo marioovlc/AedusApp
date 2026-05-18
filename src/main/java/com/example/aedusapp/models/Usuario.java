@@ -67,6 +67,10 @@ public class Usuario {
         return status;
     }
 
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
     // Devuelve la lista de roles
     // Devuelve el rol actual como String
     public String getRole() {

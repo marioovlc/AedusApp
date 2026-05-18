@@ -5,6 +5,8 @@ import com.example.aedusapp.utils.ConcurrencyManager;
 import com.example.aedusapp.utils.ResourceLoader;
 import com.example.aedusapp.utils.config.AppConfig;
 import com.example.aedusapp.utils.config.ThemeManager;
+import com.example.aedusapp.utils.SustainabilityManager;
+
 import com.example.aedusapp.database.config.DBConnection;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
@@ -53,6 +55,9 @@ public class MainApp extends Application {
         stage.setScene(scene);
         stage.centerOnScreen();
         stage.show();
+
+        // 5. Iniciar Gestor de Sostenibilidad (Modo Suspensión)
+        SustainabilityManager.setup(stage);
     }
 
     @Override

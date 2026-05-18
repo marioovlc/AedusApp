@@ -26,8 +26,6 @@ public class AdminUsersController {
     // ── FXML ──────────────────────────────────────────────────────────
     @FXML
     private VBox listaUsuarios;
-    @FXML
-    private VBox listaSolicitudes;
 
     // filtros tab usuarios
     @FXML
@@ -45,10 +43,8 @@ public class AdminUsersController {
     private final UsuarioDAO usuarioDAO = new UsuarioDAO();
     private Usuario usuarioActual;
     private Usuario usuarioSeleccionado;
-    private Usuario solicitudSeleccionada;
 
-    private List<Usuario> todosActivos = new ArrayList<>();
-    private List<Usuario> todasPendientes = new ArrayList<>();
+    private List<Usuario> todosUsuarios = new ArrayList<>();
     private String filtroRol = "Todos";
 
     public void setUsuarioActual(Usuario usuario) {
@@ -101,7 +97,8 @@ public class AdminUsersController {
     @FXML
     public void buscarUsuario() {
         String q = txtBuscarUsuario != null ? txtBuscarUsuario.getText().toLowerCase() : "";
-        List<Usuario> filtrados = todosActivos.stream()
+
+        List<Usuario> filtrados = todosUsuarios.stream()
                 .filter(u -> "Todos".equalsIgnoreCase(filtroRol) || filtroRol.equalsIgnoreCase(u.getRole()))
                 .filter(u -> q.isBlank()
                         || (u.getNombre() != null && u.getNombre().toLowerCase().contains(q))
@@ -112,6 +109,8 @@ public class AdminUsersController {
 
     // ── Carga ─────────────────────────────────────────────────────────
     private void loadData() {
+        todosUsuarios.clear();
+        
         // Usuarios activos
         javafx.concurrent.Task<List<Usuario>> activeTask = new javafx.concurrent.Task<>() {
             @Override
@@ -120,25 +119,24 @@ public class AdminUsersController {
             }
         };
         activeTask.setOnSucceeded(e -> {
-            todosActivos = activeTask.getValue();
-            buscarUsuario();
+            todosUsuarios.addAll(activeTask.getValue());
+            
+            // Inactivos (Pendientes + Baneados)
+            javafx.concurrent.Task<List<Usuario>> inactiveTask = new javafx.concurrent.Task<>() {
+                @Override
+                protected List<Usuario> call() {
+                    return usuarioDAO.getUsersByStatus("PENDING"); // Returns GET_USERS_INACTIVE
+                }
+            };
+            inactiveTask.setOnSucceeded(ev -> {
+                todosUsuarios.addAll(inactiveTask.getValue());
+                buscarUsuario();
+            });
+            inactiveTask.setOnFailed(ev -> mostrarError(listaUsuarios, "Error al cargar usuarios inactivos."));
+            new Thread(inactiveTask).start();
         });
         activeTask.setOnFailed(e -> mostrarError(listaUsuarios, "Error al cargar usuarios activos."));
         new Thread(activeTask).start();
-
-        // Solicitudes pendientes
-        javafx.concurrent.Task<List<Usuario>> pendingTask = new javafx.concurrent.Task<>() {
-            @Override
-            protected List<Usuario> call() {
-                return usuarioDAO.getUsersByStatus("PENDING");
-            }
-        };
-        pendingTask.setOnSucceeded(e -> {
-            todasPendientes = pendingTask.getValue();
-            construirListaSolicitudes(todasPendientes);
-        });
-        pendingTask.setOnFailed(e -> mostrarError(listaSolicitudes, "Error al cargar solicitudes."));
-        new Thread(pendingTask).start();
     }
 
     // ── Cards de Usuarios Activos ─────────────────────────────────────
@@ -158,10 +156,14 @@ public class AdminUsersController {
         HBox row = new HBox(14);
         row.setAlignment(Pos.CENTER_LEFT);
         row.setPadding(new Insets(12, 14, 12, 14));
-        row.getStyleClass().addAll("user-list-row", "row-role-" + getRolClass(u.getRole()));
+        
+        boolean isPending = "PENDING".equalsIgnoreCase(u.getStatus());
+        boolean isBanned = "INACTIVE".equalsIgnoreCase(u.getStatus());
+        
+        row.getStyleClass().addAll("user-list-row", isPending ? "row-role-pending" : "row-role-" + getRolClass(u.getRole()));
 
         // Avatar circular con foto real o inicial de fallback
-        StackPane avatarStack = buildAvatar(u, rolColor);
+        StackPane avatarStack = buildAvatar(u, isPending ? "#fbbf24" : rolColor);
 
         // Texto: nombre + email
         VBox textBlock = new VBox(2);
@@ -180,7 +182,51 @@ public class AdminUsersController {
                         "-fx-font-size: 10px; -fx-font-weight: bold;" +
                         "-fx-padding: 3 10; -fx-background-radius: 10;");
 
-        row.getChildren().addAll(avatarStack, textBlock, rolBadge);
+        // Badge de Estado
+        Label statusBadge = new Label(isPending ? "⏳ Pendiente" : (isBanned ? "● Baneado" : "● Activo"));
+        String statusColor = isPending ? "#fbbf24" : (isBanned ? "#ef4444" : "#22c55e");
+        statusBadge.setStyle(
+                "-fx-text-fill: " + statusColor + ";" +
+                "-fx-font-size: 11px; -fx-font-weight: bold; -fx-padding: 0 10;");
+
+        // Acciones
+        HBox actions = new HBox(8);
+        actions.setAlignment(Pos.CENTER_RIGHT);
+        
+        if (isPending) {
+            Button btnApprove = createIconButton("✓", "success-icon-btn");
+            btnApprove.setOnAction(e -> {
+                usuarioSeleccionado = u;
+                handleApproveRequest();
+            });
+            
+            Button btnDeny = createIconButton("✕", "danger-icon-btn");
+            btnDeny.setOnAction(e -> {
+                usuarioSeleccionado = u;
+                handleDenyRequest();
+            });
+            
+            actions.getChildren().addAll(btnApprove, btnDeny);
+        } else {
+            Button btnEdit = createIconButton("✏", "primary-icon-btn");
+            btnEdit.setOnAction(e -> {
+                usuarioSeleccionado = u;
+                handleEditUser();
+            });
+            
+            Button btnBan = createIconButton(isBanned ? "🛡" : "🚫", isBanned ? "success-icon-btn" : "warning-icon-btn");
+            btnBan.setOnAction(e -> handleToggleBan(u));
+            
+            Button btnDelete = createIconButton("🗑", "danger-icon-btn");
+            btnDelete.setOnAction(e -> {
+                usuarioSeleccionado = u;
+                handleDeleteUser();
+            });
+
+            actions.getChildren().addAll(btnEdit, btnBan, btnDelete);
+        }
+
+        row.getChildren().addAll(avatarStack, textBlock, rolBadge, statusBadge, actions);
 
         // Selección visual
         row.setOnMouseClicked(e -> {
@@ -190,7 +236,6 @@ public class AdminUsersController {
             });
             row.getStyleClass().add("selected");
             usuarioSeleccionado = u;
-            solicitudSeleccionada = null;
         });
 
         return row;
@@ -249,56 +294,37 @@ public class AdminUsersController {
         return stack;
     }
 
-    // ── Cards de Solicitudes Pendientes ───────────────────────────────
-    private void construirListaSolicitudes(List<Usuario> lista) {
-        listaSolicitudes.getChildren().clear();
-        if (lista.isEmpty()) {
-            mostrarVacio(listaSolicitudes, "⏳", "No hay solicitudes pendientes");
-            return;
-        }
-        for (Usuario u : lista)
-            listaSolicitudes.getChildren().add(crearFilaSolicitud(u));
+
+    private Button createIconButton(String text, String styleClass) {
+        Button btn = new Button(text);
+        btn.getStyleClass().addAll("icon-button", styleClass);
+        btn.setPadding(new Insets(5, 8, 5, 8));
+        btn.setCursor(javafx.scene.Cursor.HAND);
+        return btn;
     }
 
-    private HBox crearFilaSolicitud(Usuario u) {
-        HBox row = new HBox(14);
-        row.setAlignment(Pos.CENTER_LEFT);
-        row.setPadding(new Insets(12, 14, 12, 14));
-        row.getStyleClass().addAll("user-list-row", "row-role-pending");
-
-        // Avatar con foto real o inicial de fallback
-        StackPane avatarStack = buildAvatar(u, "#fbbf24");
-
-        // Texto nombre + email
-        VBox textBlock = new VBox(2);
-        HBox.setHgrow(textBlock, Priority.ALWAYS);
-        Label lblNombre = new Label(u.getNombre() != null ? u.getNombre() : "(sin nombre)");
-        lblNombre.getStyleClass().add("user-list-name");
-        Label lblEmail = new Label(u.getEmail() != null ? u.getEmail() : "");
-        lblEmail.getStyleClass().add("user-list-email");
-        textBlock.getChildren().addAll(lblNombre, lblEmail);
-
-        // Badge pendiente
-        Label badge = new Label("⏳ PENDIENTE");
-        badge.setStyle(
-                "-fx-background-color: rgba(251,191,36,0.15);" +
-                        "-fx-text-fill: #fbbf24;" +
-                        "-fx-font-size: 10px; -fx-font-weight: bold;" +
-                        "-fx-padding: 3 10; -fx-background-radius: 10;");
-
-        row.getChildren().addAll(avatarStack, textBlock, badge);
-
-        row.setOnMouseClicked(e -> {
-            listaSolicitudes.getChildren().forEach(n -> {
-                if (n instanceof HBox h)
-                    h.getStyleClass().remove("selected");
-            });
-            row.getStyleClass().add("selected");
-            solicitudSeleccionada = u;
-            usuarioSeleccionado = null;
-        });
-
-        return row;
+    private void handleToggleBan(Usuario u) {
+        boolean wasBanned = "INACTIVE".equalsIgnoreCase(u.getStatus());
+        String newStatus = wasBanned ? "ACTIVE" : "INACTIVE";
+        String actionMsg = wasBanned ? "desbanear" : "banear";
+        
+        Alert alert = com.example.aedusapp.utils.ui.AlertUtils.createConfirmationAlert(
+                "Confirmar acción", actionMsg.toUpperCase() + " usuario: " + u.getNombre(),
+                "¿Estás seguro de que deseas " + actionMsg + " a este usuario?");
+        
+        if (alert.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK) {
+            u.setStatus(newStatus);
+            if (usuarioDAO.updateUser(u)) {
+                if (usuarioActual != null) {
+                    if (wasBanned) LogService.logEditarUsuario(usuarioActual, u.getNombre() + " (Desbaneado)");
+                    else LogService.logEditarUsuario(usuarioActual, u.getNombre() + " (Baneado)");
+                }
+                loadData();
+                showAlert(Alert.AlertType.INFORMATION, "Éxito", "Usuario " + (wasBanned ? "desbaneado" : "baneado") + " correctamente.");
+            } else {
+                showAlert(Alert.AlertType.ERROR, "Error", "No se pudo realizar la acción.");
+            }
+        }
     }
 
     // ── Acciones ──────────────────────────────────────────────────────
@@ -365,22 +391,22 @@ public class AdminUsersController {
 
     @FXML
     private void handleApproveRequest() {
-        if (solicitudSeleccionada == null) {
+        if (usuarioSeleccionado == null) {
             showAlert(Alert.AlertType.WARNING, "Selección requerida", "Selecciona una solicitud para aprobar.");
             return;
         }
-        String role = solicitudSeleccionada.getRole();
+        String role = usuarioSeleccionado.getRole();
         if (role == null || role.isEmpty() || role.equals("0"))
             role = "user";
 
-        Usuario approvedUser = new Usuario(solicitudSeleccionada.getId(), solicitudSeleccionada.getNombre(),
-                solicitudSeleccionada.getEmail(), solicitudSeleccionada.getPassword(), "ACTIVE", role,
-                solicitudSeleccionada.getAeducoins());
+        Usuario approvedUser = new Usuario(usuarioSeleccionado.getId(), usuarioSeleccionado.getNombre(),
+                usuarioSeleccionado.getEmail(), usuarioSeleccionado.getPassword(), "ACTIVE", role,
+                usuarioSeleccionado.getAeducoins());
         if (usuarioDAO.updateUser(approvedUser)) {
             if (usuarioActual != null)
                 LogService.logCrearUsuario(usuarioActual, approvedUser.getNombre());
             showAlert(Alert.AlertType.INFORMATION, "Aprobado", "El usuario ha sido activado.");
-            solicitudSeleccionada = null;
+            usuarioSeleccionado = null;
             loadData();
         } else {
             showAlert(Alert.AlertType.ERROR, "Error", "Error al aprobar usuario.");
@@ -389,15 +415,15 @@ public class AdminUsersController {
 
     @FXML
     private void handleDenyRequest() {
-        if (solicitudSeleccionada == null) {
+        if (usuarioSeleccionado == null) {
             showAlert(Alert.AlertType.WARNING, "Selección requerida", "Selecciona una solicitud para rechazar.");
             return;
         }
-        if (usuarioDAO.deleteUser(solicitudSeleccionada.getId())) {
+        if (usuarioDAO.deleteUser(usuarioSeleccionado.getId())) {
             if (usuarioActual != null)
-                LogService.logEliminarUsuario(usuarioActual, solicitudSeleccionada.getNombre() + " (Rechazado)");
+                LogService.logEliminarUsuario(usuarioActual, usuarioSeleccionado.getNombre() + " (Rechazado)");
             showAlert(Alert.AlertType.INFORMATION, "Rechazado", "La solicitud ha sido rechazada.");
-            solicitudSeleccionada = null;
+            usuarioSeleccionado = null;
             loadData();
         } else {
             showAlert(Alert.AlertType.ERROR, "Error", "Error al rechazar usuario.");

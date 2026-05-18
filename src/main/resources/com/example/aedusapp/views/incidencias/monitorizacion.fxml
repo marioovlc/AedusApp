@@ -11,115 +11,226 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.text.Text?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
 
-<HBox spacing="20.0" styleClass="content-area"
+<VBox spacing="16.0" styleClass="content-area"
       xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.example.aedusapp.controllers.incidencias.MonitorizacionController">
     <padding><Insets bottom="30.0" left="40.0" right="40.0" top="30.0"/></padding>
 
-    <!-- Panel izquierdo: Lista de incidencias -->
-    <VBox spacing="14.0" HBox.hgrow="ALWAYS">
-        <!-- Header -->
-        <HBox alignment="CENTER_LEFT" spacing="10.0">
-            <VBox spacing="5.0" HBox.hgrow="ALWAYS">
-                <Label styleClass="page-title" text="Monitorización de Tickets"/>
-                <Label styleClass="page-subtitle" text="Gestión de estados y resolución de incidencias"/>
-                <Label fx:id="lblUsuarioConectado" style="-fx-text-fill: #4f8ef7; -fx-font-size: 12px; -fx-font-weight: bold; -fx-padding: 2 0 0 0;" text="Conectado como: ..."/>
-            </VBox>
-            <Button fx:id="btnExportarCSV" text="📄 Exportar CSV" styleClass="action-button"/>
-            <Button fx:id="btnEliminarTodo" text="⚠️ Eliminar Todas" styleClass="action-button,danger-button"/>
-        </HBox>
-
-        <!-- Barra de filtros-chips -->
-        <HBox spacing="8.0" alignment="CENTER_LEFT" styleClass="filter-bar">
-            <padding><Insets bottom="10.0" left="14.0" right="14.0" top="10.0"/></padding>
-            <Label text="Estado:" style="-fx-text-fill: #64748b; -fx-font-size: 11px; -fx-font-weight: bold;"/>
-            <Button fx:id="chipTodos"    text="Todos"         onAction="#onChipTodos"    styleClass="filter-chip,chip-active"/>
-            <Button fx:id="chipNoLeido"  text="🔴 No Leído"   onAction="#onChipNoLeido"  styleClass="filter-chip"/>
-            <Button fx:id="chipLeido"    text="🔵 Leído"      onAction="#onChipLeido"    styleClass="filter-chip"/>
-            <Button fx:id="chipRevision" text="🟡 En Revisión" onAction="#onChipRevision" styleClass="filter-chip"/>
-            <Button fx:id="chipAcabado"  text="🟢 Acabado"    onAction="#onChipAcabado"  styleClass="filter-chip"/>
-            <Region HBox.hgrow="ALWAYS"/>
-            <TextField fx:id="txtBuscarMonitor" promptText="🔍 Buscar..." prefWidth="160" onKeyReleased="#aplicarFiltros"/>
-        </HBox>
-
-        <!-- Lista de cards de incidencias (generada programáticamente) -->
-        <ScrollPane VBox.vgrow="ALWAYS" fitToWidth="true" styleClass="scroll-pane" hbarPolicy="NEVER">
-            <VBox fx:id="listaIncidencias" spacing="0"/>
-        </ScrollPane>
-    </VBox>
-
-    <!-- Panel derecho: Detalles del ticket seleccionado -->
-    <ScrollPane fx:id="scrollDetalles" fitToWidth="true" prefWidth="380.0"
-                styleClass="scroll-pane" hbarPolicy="NEVER">
-        <VBox fx:id="panelDetalles" spacing="14.0" styleClass="details-panel">
-            <padding><Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/></padding>
-
-            <HBox alignment="CENTER_LEFT" spacing="10.0">
-                <Label styleClass="details-header" text="📋 Detalles del Ticket" HBox.hgrow="ALWAYS"/>
-            </HBox>
-            <Separator/>
-
-            <VBox spacing="4.0">
-                <Label styleClass="details-label" text="TÍTULO"/>
-                <Label fx:id="lblDetallesTitulo" styleClass="details-value" wrapText="true"/>
-            </VBox>
-
-            <VBox spacing="4.0">
-                <Label styleClass="details-label" text="DESCRIPCIÓN"/>
-                <ScrollPane fitToWidth="true" maxHeight="130.0" styleClass="description-scroll">
-                    <Text fx:id="txtDetallesDescripcion" wrappingWidth="310.0" styleClass="details-description"/>
-                </ScrollPane>
-            </VBox>
-
-            <VBox fx:id="vboxImagen" spacing="4.0">
-                <Label styleClass="details-label" text="IMAGEN ADJUNTA"/>
-                <ImageView fx:id="imgDetalles" fitHeight="180.0" fitWidth="330.0" preserveRatio="true" styleClass="details-image"/>
-            </VBox>
-            <Separator/>
-
-            <VBox spacing="8.0">
-                <Label styleClass="details-label" text="ASIGNADO A"/>
-                <HBox alignment="CENTER_LEFT" spacing="10.0">
-                    <Label fx:id="lblAsignado" styleClass="assign-label" text="Sin asignar" HBox.hgrow="ALWAYS"/>
-                    <Button fx:id="btnAsignar" text="👤 Asignar" styleClass="action-button" onAction="#handleAsignar"/>
-                </HBox>
-            </VBox>
-            <Separator/>
-
-            <Label styleClass="details-label" text="CAMBIAR ESTADO"/>
-            <VBox spacing="8.0">
-                <Button fx:id="btnMarcarLeido"      maxWidth="Infinity" styleClass="action-button,status-leido-btn"    text="✔ Marcar como Leído"/>
-                <Button fx:id="btnMarcarEnRevision" maxWidth="Infinity" styleClass="action-button,status-revision-btn" text="🔍 Marcar En Revisión"/>
-                <Button fx:id="btnMarcarAcabado"    maxWidth="Infinity" styleClass="action-button,status-acabado-btn"  text="✅ Marcar como Acabado"/>
-            </VBox>
-            <Separator/>
-
-            <VBox fx:id="aiCard" spacing="10.0" styleClass="ai-suggestion-card">
-                <padding><Insets bottom="15.0" left="15.0" right="15.0" top="15.0"/></padding>
-                <Label text="✨ ¿Quizás lo solucionas tú?" styleClass="ai-card-title"/>
-                <Label fx:id="lblAiStatus" text="Selecciona una incidencia para obtener sugerencias." styleClass="ai-status-label" wrapText="true"/>
-                <TextArea fx:id="txtAiResponse" editable="false" wrapText="true" prefRowCount="6"
-                          styleClass="ai-response-area" visible="false" managed="false"/>
-                <Button fx:id="btnGuardarFAQ" text="💾 Guardar en FAQ" styleClass="action-button" visible="false" managed="false"/>
-            </VBox>
-            <Separator/>
-            <VBox spacing="10.0" VBox.vgrow="ALWAYS">
-                <Label styleClass="details-label" text="🗨 COMENTARIOS / CHAT"/>
-                <ScrollPane fx:id="scrollChat" fitToWidth="true" minHeight="200.0" styleClass="chat-scroll-pane" vbarPolicy="AS_NEEDED">
-                    <VBox fx:id="chatContainer" spacing="8.0" style="-fx-background-color: transparent;">
-                        <padding><Insets bottom="10.0" left="10.0" right="10.0" top="10.0"/></padding>
-                    </VBox>
-                </ScrollPane>
-                <HBox spacing="8.0" alignment="CENTER">
-                    <TextField fx:id="txtMensaje" HBox.hgrow="ALWAYS" promptText="Escribe un comentario..." styleClass="chat-input-field"/>
-                    <Button fx:id="btnEnviar" text="▶" onAction="#handleEnviarComentario" styleClass="action-button,primary-button"/>
-                </HBox>
-            </VBox>
-            <Separator/>
-
-            <Button fx:id="btnEliminar" maxWidth="Infinity" styleClass="action-button,danger-button" text="🗑 Eliminar Ticket" onAction="#eliminarTicket"/>
+    <!-- Header Principal -->
+    <HBox alignment="CENTER_LEFT" spacing="10.0">
+        <VBox spacing="5.0" HBox.hgrow="ALWAYS">
+            <Label styleClass="page-title" text="Monitorización"/>
+            <Label styleClass="page-subtitle" text="Gestión de incidencias, logs de auditoría y estado del sistema en tiempo real"/>
         </VBox>
-    </ScrollPane>
-</HBox>
+    </HBox>
+
+    <!-- Barra de Pestañas Premium (Estilo captura de pantalla) -->
+    <HBox spacing="0.0" alignment="CENTER_LEFT" styleClass="monitor-tab-bar">
+        <Button fx:id="btnTabIncidencias" text="INCIDENCIAS" onAction="#onTabIncidenciasClicked" styleClass="monitor-tab-button,active"/>
+        <Button fx:id="btnTabSistema" text="SISTEMA" onAction="#onTabSistemaClicked" styleClass="monitor-tab-button"/>
+    </HBox>
+
+    <!-- Área de Contenido Dinámico (StackPane) -->
+    <StackPane VBox.vgrow="ALWAYS">
+        <!-- ══════════════════════════════════════════ -->
+        <!--  PESTAÑA 1: INCIDENCIAS (Vista Original)   -->
+        <!-- ══════════════════════════════════════════ -->
+        <HBox fx:id="tabContentIncidencias" spacing="20.0">
+            <!-- Panel izquierdo: Lista de incidencias -->
+            <VBox spacing="14.0" HBox.hgrow="ALWAYS">
+                <!-- Header de Incidencias -->
+                <HBox alignment="CENTER_LEFT" spacing="10.0">
+                    <VBox spacing="3.0" HBox.hgrow="ALWAYS">
+                        <Label fx:id="lblUsuarioConectado" style="-fx-text-fill: #4f8ef7; -fx-font-size: 12px; -fx-font-weight: bold;" text="Conectado como: ..."/>
+                    </VBox>
+                    <Button fx:id="btnExportarCSV" text="📄 Exportar CSV" styleClass="action-button"/>
+                    <Button fx:id="btnEliminarTodo" text="⚠️ Eliminar Todas" styleClass="action-button,danger-button"/>
+                </HBox>
+
+                <!-- Barra de filtros-chips -->
+                <HBox spacing="8.0" alignment="CENTER_LEFT" styleClass="filter-bar">
+                    <padding><Insets bottom="10.0" left="14.0" right="14.0" top="10.0"/></padding>
+                    <Label text="Estado:" style="-fx-text-fill: #64748b; -fx-font-size: 11px; -fx-font-weight: bold;"/>
+                    <Button fx:id="chipTodos"    text="Todos"         onAction="#onChipTodos"    styleClass="filter-chip,chip-active"/>
+                    <Button fx:id="chipNoLeido"  text="🔴 No Leído"   onAction="#onChipNoLeido"  styleClass="filter-chip"/>
+                    <Button fx:id="chipLeido"    text="🔵 Leído"      onAction="#onChipLeido"    styleClass="filter-chip"/>
+                    <Button fx:id="chipRevision" text="🟡 En Revisión" onAction="#onChipRevision" styleClass="filter-chip"/>
+                    <Button fx:id="chipAcabado"  text="🟢 Acabado"    onAction="#onChipAcabado"  styleClass="filter-chip"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <TextField fx:id="txtBuscarMonitor" promptText="🔍 Buscar..." prefWidth="160" onKeyReleased="#aplicarFiltros"/>
+                </HBox>
+
+                <!-- Lista de cards de incidencias (generada programáticamente) -->
+                <ScrollPane VBox.vgrow="ALWAYS" fitToWidth="true" styleClass="scroll-pane" hbarPolicy="NEVER">
+                    <VBox fx:id="listaIncidencias" spacing="0"/>
+                </ScrollPane>
+            </VBox>
+
+            <!-- Panel derecho: Detalles del ticket seleccionado -->
+            <ScrollPane fx:id="scrollDetalles" fitToWidth="true" prefWidth="380.0"
+                        styleClass="scroll-pane" hbarPolicy="NEVER">
+                <VBox fx:id="panelDetalles" spacing="14.0" styleClass="details-panel">
+                    <padding><Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/></padding>
+
+                    <HBox alignment="CENTER_LEFT" spacing="10.0">
+                        <Label styleClass="details-header" text="📋 Detalles del Ticket" HBox.hgrow="ALWAYS"/>
+                    </HBox>
+                    <Separator/>
+
+                    <VBox spacing="4.0">
+                        <Label styleClass="details-label" text="TÍTULO"/>
+                        <Label fx:id="lblDetallesTitulo" styleClass="details-value" wrapText="true"/>
+                    </VBox>
+
+                    <VBox spacing="4.0">
+                        <Label styleClass="details-label" text="DESCRIPCIÓN"/>
+                        <ScrollPane fitToWidth="true" maxHeight="130.0" styleClass="description-scroll">
+                            <Text fx:id="txtDetallesDescripcion" wrappingWidth="310.0" styleClass="details-description"/>
+                        </ScrollPane>
+                    </VBox>
+
+                    <VBox fx:id="vboxImagen" spacing="4.0">
+                        <Label styleClass="details-label" text="IMAGEN ADJUNTA"/>
+                        <ImageView fx:id="imgDetalles" fitHeight="180.0" fitWidth="330.0" preserveRatio="true" styleClass="details-image"/>
+                    </VBox>
+                    <Separator/>
+
+                    <VBox spacing="8.0">
+                        <Label styleClass="details-label" text="ASIGNADO A"/>
+                        <HBox alignment="CENTER_LEFT" spacing="10.0">
+                            <Label fx:id="lblAsignado" styleClass="assign-label" text="Sin asignar" HBox.hgrow="ALWAYS"/>
+                            <Button fx:id="btnAsignar" text="👤 Asignar" styleClass="action-button" onAction="#handleAsignar"/>
+                        </HBox>
+                    </VBox>
+                    <Separator/>
+
+                    <Label styleClass="details-label" text="CAMBIAR ESTADO"/>
+                    <VBox spacing="8.0">
+                        <Button fx:id="btnMarcarLeido"      maxWidth="Infinity" styleClass="action-button,status-leido-btn"    text="✔ Marcar como Leído"/>
+                        <Button fx:id="btnMarcarEnRevision" maxWidth="Infinity" styleClass="action-button,status-revision-btn" text="🔍 Marcar En Revisión"/>
+                        <Button fx:id="btnMarcarAcabado"    maxWidth="Infinity" styleClass="action-button,status-acabado-btn"  text="✅ Marcar como Acabado"/>
+                    </VBox>
+                    <Separator/>
+
+                    <VBox fx:id="aiCard" spacing="10.0" styleClass="ai-suggestion-card">
+                        <padding><Insets bottom="15.0" left="15.0" right="15.0" top="15.0"/></padding>
+                        <Label text="✨ ¿Quizás lo solucionas tú?" styleClass="ai-card-title"/>
+                        <Label fx:id="lblAiStatus" text="Selecciona una incidencia para obtener sugerencias." styleClass="ai-status-label" wrapText="true"/>
+                        <TextArea fx:id="txtAiResponse" editable="false" wrapText="true" prefRowCount="6"
+                                  styleClass="ai-response-area" visible="false" managed="false"/>
+                        <Button fx:id="btnGuardarFAQ" text="💾 Guardar en FAQ" styleClass="action-button" visible="false" managed="false"/>
+                    </VBox>
+                    <Separator/>
+                    <VBox spacing="10.0" VBox.vgrow="ALWAYS">
+                        <Label styleClass="details-label" text="🗨 COMENTARIOS / CHAT"/>
+                        <ScrollPane fx:id="scrollChat" fitToWidth="true" minHeight="200.0" styleClass="chat-scroll-pane" vbarPolicy="AS_NEEDED">
+                            <VBox fx:id="chatContainer" spacing="8.0" style="-fx-background-color: transparent;">
+                                <padding><Insets bottom="10.0" left="10.0" right="10.0" top="10.0"/></padding>
+                            </VBox>
+                        </ScrollPane>
+                        <HBox spacing="8.0" alignment="CENTER">
+                            <TextField fx:id="txtMensaje" HBox.hgrow="ALWAYS" promptText="Escribe un comentario..." styleClass="chat-input-field"/>
+                            <Button fx:id="btnEnviar" text="▶" onAction="#handleEnviarComentario" styleClass="action-button,primary-button"/>
+                        </HBox>
+                    </VBox>
+                    <Separator/>
+
+                    <Button fx:id="btnEliminar" maxWidth="Infinity" styleClass="action-button,danger-button" text="🗑 Eliminar Ticket" onAction="#eliminarTicket"/>
+                </VBox>
+            </ScrollPane>
+        </HBox>
+
+        <!-- ══════════════════════════════════════════ -->
+        <!--  PESTAÑA 2: SISTEMA (Infraestructura / Uptime)-->
+        <!-- ══════════════════════════════════════════ -->
+        <ScrollPane fx:id="tabContentSistema" fitToWidth="true" visible="false" styleClass="scroll-pane" hbarPolicy="NEVER">
+            <VBox spacing="20.0">
+                <padding><Insets bottom="20.0" left="5.0" right="5.0" top="15.0"/></padding>
+
+                <!-- Título Infraestructura y Botón Refrescar -->
+                <HBox alignment="CENTER_LEFT">
+                    <Label text="INFRAESTRUCTURA" style="-fx-text-fill: #64748b; -fx-font-size: 11px; -fx-font-weight: bold; -fx-letter-spacing: 1.5;"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Button fx:id="btnRefreshSistema" onAction="#refreshSistemaMetrics" styleClass="action-button" style="-fx-padding: 6 12; -fx-background-color: transparent; -fx-cursor: hand;">
+                        <graphic><FontIcon iconLiteral="fas-sync" iconSize="15" styleClass="icon-blue"/></graphic>
+                    </Button>
+                </HBox>
+
+                <!-- Tarjetas de estado -->
+                <VBox spacing="12.0">
+                    <!-- Tarjeta: Groq AI Engine -->
+                    <HBox alignment="CENTER_LEFT" spacing="16.0" styleClass="dashboard-card" style="-fx-padding: 16;">
+                        <StackPane style="-fx-background-color: rgba(52, 211, 153, 0.1); -fx-background-radius: 12; -fx-min-width: 44; -fx-min-height: 44;">
+                            <FontIcon iconLiteral="fas-magic" iconSize="20" styleClass="icon-green"/>
+                        </StackPane>
+                        <VBox spacing="2.0" HBox.hgrow="ALWAYS">
+                            <Label text="Groq AI Engine" style="-fx-text-fill: #f1f5f9; -fx-font-size: 14px; -fx-font-weight: bold;"/>
+                            <Label fx:id="lblGroqSubtitle" text="Operativo" style="-fx-text-fill: #64748b; -fx-font-size: 12px;"/>
+                        </VBox>
+                        <Label fx:id="badgeGroqStatus" text="ONLINE" styleClass="estado-badge-modern" style="-fx-background-color: rgba(52, 211, 153, 0.15); -fx-text-fill: #34d399; -fx-font-size: 11px; -fx-font-weight: bold; -fx-padding: 4 10; -fx-background-radius: 6;"/>
+                    </HBox>
+
+                    <!-- Tarjeta: Neon Database -->
+                    <HBox alignment="CENTER_LEFT" spacing="16.0" styleClass="dashboard-card" style="-fx-padding: 16;">
+                        <StackPane style="-fx-background-color: rgba(79, 142, 247, 0.1); -fx-background-radius: 12; -fx-min-width: 44; -fx-min-height: 44;">
+                            <FontIcon iconLiteral="fas-database" iconSize="20" styleClass="icon-blue"/>
+                        </StackPane>
+                        <VBox spacing="2.0" HBox.hgrow="ALWAYS">
+                            <Label text="Neon Database" style="-fx-text-fill: #f1f5f9; -fx-font-size: 14px; -fx-font-weight: bold;"/>
+                            <Label fx:id="lblNeonSubtitle" text="En línea" style="-fx-text-fill: #64748b; -fx-font-size: 12px;"/>
+                        </VBox>
+                        <Label fx:id="badgeNeonStatus" text="ONLINE" styleClass="estado-badge-modern" style="-fx-background-color: rgba(52, 211, 153, 0.15); -fx-text-fill: #34d399; -fx-font-size: 11px; -fx-font-weight: bold; -fx-padding: 4 10; -fx-background-radius: 6;"/>
+                    </HBox>
+
+                    <!-- Tarjeta: Vercel Edge -->
+                    <HBox alignment="CENTER_LEFT" spacing="16.0" styleClass="dashboard-card" style="-fx-padding: 16;">
+                        <StackPane style="-fx-background-color: rgba(167, 139, 250, 0.1); -fx-background-radius: 12; -fx-min-width: 44; -fx-min-height: 44;">
+                            <FontIcon iconLiteral="fas-cloud" iconSize="20" styleClass="icon-purple"/>
+                        </StackPane>
+                        <VBox spacing="2.0" HBox.hgrow="ALWAYS">
+                            <Label text="Vercel Edge" style="-fx-text-fill: #f1f5f9; -fx-font-size: 14px; -fx-font-weight: bold;"/>
+                            <Label fx:id="lblVercelSubtitle" text="Conectado" style="-fx-text-fill: #64748b; -fx-font-size: 12px;"/>
+                        </VBox>
+                        <Label fx:id="badgeVercelStatus" text="ONLINE" styleClass="estado-badge-modern" style="-fx-background-color: rgba(52, 211, 153, 0.15); -fx-text-fill: #34d399; -fx-font-size: 11px; -fx-font-weight: bold; -fx-padding: 4 10; -fx-background-radius: 6;"/>
+                    </HBox>
+                </VBox>
+
+                <!-- Sección: Métricas de Red -->
+                <VBox spacing="10.0">
+                    <Label text="MÉTRICAS DE RED" style="-fx-text-fill: #64748b; -fx-font-size: 11px; -fx-font-weight: bold; -fx-letter-spacing: 1.5;"/>
+                    <VBox styleClass="dashboard-card" style="-fx-padding: 0; -fx-background-radius: 14; -fx-border-color: #1c2d47; -fx-border-width: 1;">
+                        <!-- Métrica: Latencia -->
+                        <HBox alignment="CENTER_LEFT" spacing="14.0" style="-fx-padding: 18 20;">
+                            <FontIcon iconLiteral="fas-tachometer-alt" iconSize="16" styleClass="icon-muted"/>
+                            <Label text="Latencia de DB" style="-fx-text-fill: #c8d5ea; -fx-font-size: 13px;" HBox.hgrow="ALWAYS"/>
+                            <Region HBox.hgrow="ALWAYS"/>
+                            <Label fx:id="lblLatencyValue" text="Calculando..." style="-fx-text-fill: #f1f5f9; -fx-font-size: 14px; -fx-font-weight: bold;"/>
+                        </HBox>
+                        <Separator style="-fx-background-color: #1c2d47; -fx-min-height: 1; -fx-max-height: 1; -fx-padding: 0;"/>
+                        
+                        <!-- Métrica: Uptime -->
+                        <HBox alignment="CENTER_LEFT" spacing="14.0" style="-fx-padding: 18 20;">
+                            <FontIcon iconLiteral="fas-history" iconSize="16" styleClass="icon-muted"/>
+                            <Label text="Tiempo de Actividad" style="-fx-text-fill: #c8d5ea; -fx-font-size: 13px;" HBox.hgrow="ALWAYS"/>
+                            <Region HBox.hgrow="ALWAYS"/>
+                            <Label text="99.98%" style="-fx-text-fill: #f1f5f9; -fx-font-size: 14px; -fx-font-weight: bold;"/>
+                        </HBox>
+                        <Separator style="-fx-background-color: #1c2d47; -fx-min-height: 1; -fx-max-height: 1; -fx-padding: 0;"/>
+                        
+                        <!-- Métrica: Versión -->
+                        <HBox alignment="CENTER_LEFT" spacing="14.0" style="-fx-padding: 18 20;">
+                            <FontIcon iconLiteral="fas-info-circle" iconSize="16" styleClass="icon-muted"/>
+                            <Label text="Versión del Sistema" style="-fx-text-fill: #c8d5ea; -fx-font-size: 13px;" HBox.hgrow="ALWAYS"/>
+                            <Region HBox.hgrow="ALWAYS"/>
+                            <Label text="BETA" style="-fx-text-fill: #f1f5f9; -fx-font-size: 14px; -fx-font-weight: bold;"/>
+                        </HBox>
+                    </VBox>
+                </VBox>
+            </VBox>
+        </ScrollPane>
+    </StackPane>
+</VBox>

@@ -252,6 +252,11 @@
     -fx-icon-color: #a78bfa;
 }
 
+.icon-muted {
+    -fx-fill: #64748b;
+    -fx-icon-color: #64748b;
+}
+
 .kpi-label {
     -fx-text-fill: #64748b;
     -fx-font-size: 11px;
@@ -1566,6 +1571,34 @@
     -fx-border-color: transparent transparent #0f1a2d #64748b;
 }
 
+/* ── Icon Buttons for Rows ── */
+.icon-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #94a3b8;
+    -fx-font-size: 14px;
+    -fx-background-radius: 6;
+}
+.icon-button:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.1);
+    -fx-text-fill: white;
+}
+.primary-icon-btn:hover {
+    -fx-text-fill: #4f8ef7;
+    -fx-background-color: rgba(79, 142, 247, 0.1);
+}
+.success-icon-btn:hover {
+    -fx-text-fill: #22c55e;
+    -fx-background-color: rgba(34, 197, 94, 0.1);
+}
+.warning-icon-btn:hover {
+    -fx-text-fill: #fbbf24;
+    -fx-background-color: rgba(251, 191, 36, 0.1);
+}
+.danger-icon-btn:hover {
+    -fx-text-fill: #ef4444;
+    -fx-background-color: rgba(239, 68, 68, 0.1);
+}
+
 /* ── Connect Hub Additions ── */
 .presence-dot {
     -fx-min-width: 10px;
@@ -1755,5 +1788,34 @@
 }
 
 .chat-input-field:focused {
+    -fx-border-color: #4f8ef7;
+}
+
+/* ── Monitorización Premium Tabs & SISTEMA ── */
+.monitor-tab-bar {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent #1c2d47 transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 0 0 4 0;
+}
+
+.monitor-tab-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #64748b;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-padding: 10 24;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+    -fx-border-width: 0 0 3 0;
+    -fx-background-radius: 0;
+}
+
+.monitor-tab-button:hover {
+    -fx-text-fill: #f1f5f9;
+}
+
+.monitor-tab-button.active {
+    -fx-text-fill: #4f8ef7;
     -fx-border-color: #4f8ef7;
 }
