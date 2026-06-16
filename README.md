@@ -1,4 +1,8 @@
 <div align="center">
+  <img src="banner.png" alt="Aedus Banner" width="100%" />
+</div>
+
+<div align="center">
   <h1>🎓 AedusApp</h1>
   <p>Desktop application built with JavaFX and PostgreSQL</p>
 
